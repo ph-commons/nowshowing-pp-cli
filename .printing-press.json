@@ -1,0 +1,54 @@
+{
+  "schema_version": 2,
+  "generated_at": "2026-07-27T21:48:27.33793Z",
+  "printing_press_version": "4.29.0",
+  "api_name": "nowshowing",
+  "display_name": "NowShowing",
+  "cli_name": "nowshowing-pp-cli",
+  "creator": {
+    "handle": "ngpestelos",
+    "name": "Nestor G Pestelos Jr"
+  },
+  "owner": "ngpestelos",
+  "printer": "ngpestelos",
+  "printer_name": "Nestor G Pestelos Jr",
+  "spec_path": "spec.yaml",
+  "spec_format": "internal",
+  "spec_checksum": "sha256:d6665279b2e85c4170b3935f6c1099a74223c6f932cabdb57ea53596f77d5015",
+  "run_id": "20260728-051711-195ed042",
+  "category": "media-and-entertainment",
+  "description": "Metro Manila movie showtimes as a CLI — every tracked cinema in one now-playing board, cross-checked across two sources.",
+  "mcp_binary": "nowshowing-pp-mcp",
+  "mcp_tool_count": 1,
+  "mcp_public_tool_count": 1,
+  "mcp_ready": "full",
+  "api_version": "0.1.0",
+  "auth_type": "none",
+  "novel_features": [
+    {
+      "name": "Now-playing board",
+      "command": "now-playing",
+      "description": "Every movie showing today across all tracked Metro Manila and Iloilo cinemas, in one call."
+    },
+    {
+      "name": "Movie showtime finder",
+      "command": "search",
+      "description": "Find which tracked theaters are playing a given movie today, and at what times."
+    },
+    {
+      "name": "Two-source showtime cross-check",
+      "command": "now-playing",
+      "description": "Flags each showtime as verified (two sources agree), partial, mismatched, or ClickTheCity-only by cross-checking popcorn.app."
+    },
+    {
+      "name": "IMDb resolver",
+      "command": "movies imdb",
+      "description": "Resolves a movie title to its IMDb page, flagging remake/re-release title collisions by recent year."
+    },
+    {
+      "name": "Tracked theater registry",
+      "command": "theaters",
+      "description": "Lists every tracked cinema with its ClickTheCity slug, display name, and city."
+    }
+  ]
+}

@@ -1,0 +1,131 @@
+# nowshowing internal spec — hand-authored 2026-07-28 from the live-verified
+# ClickTheCity theater API and the ~/src/nowshowing static-site scraper logic.
+#
+# Sources (all public, no auth anywhere on the surface):
+#   - ClickTheCity theater JSON API (PRIMARY, typed endpoint below). Requires a
+#     browser User-Agent header or it returns {error}; see required_headers.
+#   - popcorn.app per-cinema pages (cross-check) — variable full URLs with an
+#     inline `allShowtimes:` JS blob, so they cannot be a clean typed endpoint;
+#     parsed in hand-written internal/popcorn and surfaced via novel commands.
+#   - IMDb suggestion endpoint (enrichment) — path derives from the query's
+#     first char, so it lives in internal/imdb behind a novel command.
+#
+# cache: intentionally NOT enabled — showtimes are date-specific and change
+# intraday (popcorn drops elapsed times; CTC lists the full day). A generic
+# wall-clock cache would serve stale intraday boards. now-playing fetches live.
+name: nowshowing
+description: "Metro Manila (and Iloilo) movie showtimes — per-theater ClickTheCity schedules cross-checked against popcorn.app, with a now-playing board across every tracked cinema"
+version: "0.1.0"
+base_url: "https://www.clickthecity.com"
+health_check_path: "/"
+category: media-and-entertainment
+
+required_headers:
+  - name: User-Agent
+    value: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
+auth:
+  type: none
+
+config:
+  format: toml
+  path: "~/.config/nowshowing-pp-cli/config.toml"
+
+learn:
+  # Free-text theater aliases → canonical ClickTheCity slugs. These are how a
+  # user actually names cinemas ("megamall", "north edsa", "greenbelt").
+  synonyms:
+    "megamall": "sm-megamall"
+    "north edsa": "sm-city-north-edsa"
+    "the podium": "the-podium"
+    "podium": "the-podium"
+    "power plant": "power-plant-mall"
+    "greenbelt": "greenbelt-3"
+    "glorietta": "glorietta-4"
+    "trinoma": "trinoma-mall"
+    "up town": "up-town-center"
+    "galleria": "robinsons-galleria-ortigas"
+    "estancia": "ortigas-cinemas-estancia"
+  entity_lookup_seeds:
+    theater:
+      - canonical: sm-megamall
+        aliases: [sm megamall, megamall, sm city megamall]
+      - canonical: sm-city-north-edsa
+        aliases: [sm north edsa, north edsa, sm city north edsa]
+      - canonical: the-podium
+        aliases: [podium, the podium]
+      - canonical: power-plant-mall
+        aliases: [power plant, powerplant, rockwell]
+      - canonical: greenbelt-3
+        aliases: [greenbelt, greenbelt 3, ayala greenbelt]
+      - canonical: glorietta-4
+        aliases: [glorietta, glorietta 4]
+      - canonical: trinoma-mall
+        aliases: [trinoma, trinoma mall]
+      - canonical: up-town-center
+        aliases: [up town center, up town, u.p. town center]
+      - canonical: robinsons-galleria-ortigas
+        aliases: [galleria, robinsons galleria, robinsons galleria ortigas]
+      - canonical: robinsons-place-manila
+        aliases: [robinsons manila, robinsons place manila]
+      - canonical: ortigas-cinemas-estancia
+        aliases: [estancia, ortigas cinemas estancia]
+
+resources:
+  theater:
+    description: "Per-theater movie schedules from ClickTheCity (primary source)"
+    endpoints:
+      showtimes:
+        method: GET
+        path: "/api/movies/theater/{slug}"
+        description: "All movies now showing at one theater on a given date, with per-screen showtimes. Join now_showing (movie metadata) to schedules (per-screen showtime lists) on movieId."
+        example: "  nowshowing-pp-cli theater showtimes sm-megamall --date 2026-07-28"
+        happy_args: "slug=sm-megamall;--date=2026-07-28"
+        params:
+          - name: slug
+            type: string
+            required: true
+            positional: true
+            description: "ClickTheCity theater slug (e.g. sm-megamall, greenbelt-3). See the theaters command for the tracked set."
+          - name: date
+            type: string
+            required: false
+            description: "Schedule date, YYYY-MM-DD. Defaults to today in Asia/Manila when omitted."
+        response:
+          type: object
+          item: TheaterShowtimes
+        response_path: ""
+
+types:
+  TheaterShowtimes:
+    fields:
+      - name: status
+        type: bool
+      - name: theater
+        type: string
+      - name: now_showing
+        type: string
+      - name: schedules
+        type: string
+  Movie:
+    fields:
+      - name: movieId
+        type: int
+      - name: title
+        type: string
+      - name: mtrcb_rating
+        type: string
+      - name: running_time
+        type: string
+      - name: in3d
+        type: bool
+  Schedule:
+    fields:
+      - name: movieId
+        type: int
+      - name: theaterName
+        type: string
+      - name: date
+        type: string
+      - name: showtimes
+        type: string

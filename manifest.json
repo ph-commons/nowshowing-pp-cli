@@ -1,0 +1,27 @@
+{
+  "manifest_version": "0.3",
+  "name": "nowshowing-pp-mcp",
+  "display_name": "NowShowing",
+  "version": "0.1.0",
+  "description": "Metro Manila movie showtimes as a CLI — every tracked cinema in one now-playing board, cross-checked across two sources.",
+  "author": {
+    "name": "CLI Printing Press"
+  },
+  "license": "Apache-2.0",
+  "server": {
+    "type": "binary",
+    "entry_point": "bin/nowshowing-pp-mcp",
+    "mcp_config": {
+      "command": "${__dirname}/bin/nowshowing-pp-mcp",
+      "args": []
+    }
+  },
+  "compatibility": {
+    "claude_desktop": ">=1.0.0",
+    "platforms": [
+      "darwin",
+      "linux",
+      "win32"
+    ]
+  }
+}

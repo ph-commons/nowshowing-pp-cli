@@ -1,0 +1,40 @@
+{
+  "api_name": "nowshowing",
+  "base_url": "https://www.clickthecity.com",
+  "description": "Metro Manila movie showtimes as a CLI — every tracked cinema in one now-playing board, cross-checked across two sources.",
+  "mcp_ready": "full",
+  "http_transport": "standard",
+  "auth": {
+    "type": "none"
+  },
+  "required_headers": [
+    {
+      "name": "User-Agent",
+      "value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+  ],
+  "tools": [
+    {
+      "name": "theater_showtimes",
+      "description": "All movies now showing at one theater on a given date, with per-screen showtimes. Join now_showing (movie metadata) to schedules (per-screen showtime lists) on movieId. Required: slug. Optional: date. Returns the TheaterShowtimes.",
+      "method": "GET",
+      "path": "/api/movies/theater/{slug}",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "slug",
+          "type": "string",
+          "location": "path",
+          "description": "ClickTheCity theater slug (e.g. sm-megamall, greenbelt-3). See the theaters command for the tracked set.",
+          "required": true
+        },
+        {
+          "name": "date",
+          "type": "string",
+          "location": "query",
+          "description": "Schedule date, YYYY-MM-DD. Defaults to today in Asia/Manila when omitted."
+        }
+      ]
+    }
+  ]
+}
