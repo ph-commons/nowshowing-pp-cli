@@ -39,13 +39,3 @@ archives:
         formats: [zip]
 checksum:
   name_template: checksums.txt
-brews:
-  - name: nowshowing-pp-cli
-    repository:
-      owner: ngpestelos
-      name: homebrew-tap
-    homepage: "https://github.com/ngpestelos/nowshowing-pp-cli"
-    description: "Metro Manila movie showtimes as a CLI — every tracked cinema in one now-playing board, cross-checked across two sources."
-    install: |
-      bin.install "nowshowing-pp-cli"
-      bin.install "nowshowing-pp-mcp"
