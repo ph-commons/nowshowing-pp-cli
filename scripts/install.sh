@@ -75,10 +75,10 @@ case ":$PATH:" in
 esac
 
 # Fleet skill wiring (optional)
-SKILL_SRC="${HERMES_CONFIG:-$HOME/src/hermes-config}/skills/nowshowing-pp-cli"
+SKILL_SRC="${HERMES_CONFIG:-$HOME/src/hermes-config}/skills/pp-nowshowing"
 if [ -d "$SKILL_SRC" ] && [ -d "$HOME/.claude/skills" ]; then
-  ln -sfn "$SKILL_SRC" "$HOME/.claude/skills/nowshowing-pp-cli"
-  log "Linked ~/.claude/skills/nowshowing-pp-cli"
+  ln -sfn "$SKILL_SRC" "$HOME/.claude/skills/pp-nowshowing"
+  log "Linked ~/.claude/skills/pp-nowshowing"
 fi
 
 log "Smoke: $BIN theaters --json"
