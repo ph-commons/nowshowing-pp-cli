@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"nowshowing-pp-cli/internal/cliutil"
-	"nowshowing-pp-cli/internal/httpx"
-	"nowshowing-pp-cli/internal/titles"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/cliutil"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/httpx"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/titles"
 )
 
 // fetchFailure records one theater that failed to fetch, so partial results are

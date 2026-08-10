@@ -12,7 +12,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"nowshowing-pp-cli/internal/registry"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/registry"
 )
 
 func newNovelTheatersCmd(flags *rootFlags) *cobra.Command {

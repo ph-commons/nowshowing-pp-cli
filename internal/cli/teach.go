@@ -27,12 +27,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"nowshowing-pp-cli/internal/cliutil"
-	"nowshowing-pp-cli/internal/learn"
-	"nowshowing-pp-cli/internal/learn/entities"
-	"nowshowing-pp-cli/internal/learn/lookups"
-	"nowshowing-pp-cli/internal/learn/patterns"
-	"nowshowing-pp-cli/internal/store"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/cliutil"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/learn"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/learn/entities"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/learn/lookups"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/learn/patterns"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/store"
 )
 
 // noLearnEnvVar is the environment variable that disables the learning

@@ -6,78 +6,43 @@ NowShowing turns ClickTheCity's per-theater schedules into an agent-native CLI. 
 
 ## Install
 
-The recommended path installs both the `nowshowing-pp-cli` binary and the `pp-nowshowing` agent skill (Claude Code, Codex, Cursor, Gemini CLI, GitHub Copilot, and other agents supported by the upstream [`skills`](https://github.com/vercel-labs/skills) CLI) in one shot:
+**Source:** [github.com/ph-commons/nowshowing-pp-cli](https://github.com/ph-commons/nowshowing-pp-cli) (PH Commons)
+
+### Recommended (prebuilt release)
 
 ```bash
-npx -y @mvanhorn/printing-press-library install nowshowing
+curl -fsSL https://raw.githubusercontent.com/ph-commons/nowshowing-pp-cli/master/scripts/install.sh | bash
 ```
 
-For CLI only (no skill):
+Installs `nowshowing-pp-cli` (and companion MCP binary when present in the release) into `$GOBIN` or `~/.local/bin`. Requires a matching GitHub release asset for your OS/arch.
+
+### Go install
+
+Requires Go 1.26.5+:
 
 ```bash
-npx -y @mvanhorn/printing-press-library install nowshowing --cli-only
+go install github.com/ph-commons/nowshowing-pp-cli/cmd/nowshowing-pp-cli@latest
+go install github.com/ph-commons/nowshowing-pp-cli/cmd/nowshowing-pp-mcp@latest
 ```
 
-For skill only — installs the skill into the same agents as the default command above, but skips the CLI binary (use this to update or reinstall just the skill):
+### Pre-built binary (manual)
 
-```bash
-npx -y @mvanhorn/printing-press-library install nowshowing --skill-only
-```
+Download from the [latest release](https://github.com/ph-commons/nowshowing-pp-cli/releases/latest). On macOS: `xattr -d com.apple.quarantine <binary>`. On Unix: `chmod +x <binary>`.
 
-To constrain the skill install to one or more specific agents (repeatable — agent names match the [`skills`](https://github.com/vercel-labs/skills) CLI):
+### Agent skill (`pp-nowshowing`)
 
-```bash
-npx -y @mvanhorn/printing-press-library install nowshowing --agent claude-code
-npx -y @mvanhorn/printing-press-library install nowshowing --agent claude-code --agent codex
-```
-
-### Without Node (Go fallback)
-
-If `npx` isn't available (no Node, offline), install the CLI directly via Go (requires Go 1.26.5 or newer):
-
-```bash
-go install github.com/mvanhorn/printing-press-library/library/media-and-entertainment/nowshowing/cmd/nowshowing-pp-cli@latest
-```
-
-This installs the CLI only — no skill.
-
-### Pre-built binary
-
-Download a pre-built binary for your platform from the [latest release](https://github.com/mvanhorn/printing-press-library/releases/tag/nowshowing-current). On macOS, clear the Gatekeeper quarantine: `xattr -d com.apple.quarantine <binary>`. On Unix, mark it executable: `chmod +x <binary>`.
+Install the skill from your Hermes / Claude Code skill tree (canonical: `hermes-config/skills/pp-nowshowing`), or copy `SKILL.md` from this repo.
 
 <!-- pp-hermes-install-anchor -->
 ## Install for Hermes
 
-Install the CLI binary first. The installer writes binaries to a per-user managed bin directory by default: `$HOME/.local/bin` on macOS/Linux and `%LOCALAPPDATA%\Programs\PrintingPress\bin` on Windows.
-
-```bash
-npx -y @mvanhorn/printing-press-library install nowshowing --cli-only
-```
-
-Then install the focused Hermes skill.
-
-From the Hermes CLI:
-
-```bash
-hermes skills install mvanhorn/printing-press-library/cli-skills/pp-nowshowing --force
-```
-
-Inside a Hermes chat session:
-
-```bash
-/skills install mvanhorn/printing-press-library/cli-skills/pp-nowshowing --force
-```
-
-Restart the Hermes session or gateway if the newly installed skill is not visible immediately.
+1. Install the CLI (curl installer or `go install` above).
+2. Ensure `nowshowing-pp-cli --version` works and the bin dir is on `$PATH`.
+3. Install/enable the `pp-nowshowing` skill in Hermes (`hermes skills` / skill directory), then restart the session if needed.
 
 ## Install for OpenClaw
-Install both the CLI binary and the focused OpenClaw skill. The installer defaults binaries to a per-user bin directory (`$HOME/.local/bin` on macOS/Linux, `%LOCALAPPDATA%\Programs\PrintingPress\bin` on Windows):
 
-```bash
-npx -y @mvanhorn/printing-press-library install nowshowing --agent openclaw
-```
-
-Restart the OpenClaw session or gateway if the newly installed skill is not visible immediately.
+Install the CLI binary first, then install the OpenClaw-focused skill from your skill distribution. Restart the OpenClaw session if the skill is not visible immediately.
 
 ## Use with Claude Desktop
 
@@ -85,7 +50,7 @@ This CLI ships an [MCPB](https://github.com/modelcontextprotocol/mcpb) bundle �
 
 To install:
 
-1. Download the `.mcpb` for your platform from the [latest release](https://github.com/mvanhorn/printing-press-library/releases/tag/nowshowing-current).
+1. Download the `.mcpb` for your platform from the [latest release](https://github.com/ph-commons/nowshowing-pp-cli/releases/latest).
 2. Double-click the `.mcpb` file. Claude Desktop opens and walks you through the install.
 
 Requires Claude Desktop 1.0.0 or later. Pre-built bundles ship for macOS Apple Silicon (`darwin-arm64`) and Windows (`amd64`, `arm64`); for other platforms, use the manual config below.
@@ -97,7 +62,7 @@ If you can't use the MCPB bundle (older Claude Desktop, unsupported platform), i
 
 
 ```bash
-go install github.com/mvanhorn/printing-press-library/library/media-and-entertainment/nowshowing/cmd/nowshowing-pp-mcp@latest
+go install github.com/ph-commons/nowshowing-pp-cli/cmd/nowshowing-pp-mcp@latest
 ```
 
 Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):

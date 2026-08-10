@@ -11,7 +11,7 @@ import (
 	"sync"
 	"testing"
 
-	"nowshowing-pp-cli/internal/cliutil"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/cliutil"
 )
 
 func withTempHomeForLog(t *testing.T) string {

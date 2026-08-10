@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"nowshowing-pp-cli/internal/learn"
-	"nowshowing-pp-cli/internal/store"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/learn"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/store"
 )
 
 // TestNewLearnConfig_BuildsConfig pins that the emitted init shim

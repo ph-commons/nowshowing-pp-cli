@@ -14,8 +14,8 @@ import (
 	"regexp"
 	"strings"
 
-	"nowshowing-pp-cli/internal/httpx"
-	"nowshowing-pp-cli/internal/titles"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/httpx"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/titles"
 )
 
 const suggestionBase = "https://v3.sg.media-imdb.com/suggestion/"

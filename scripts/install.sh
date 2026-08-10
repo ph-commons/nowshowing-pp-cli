@@ -2,7 +2,7 @@
 #
 # nowshowing-pp-cli fleet installer — idempotent, macOS + Linux.
 #
-#   curl -fsSL https://raw.githubusercontent.com/ngpestelos/nowshowing-pp-cli/main/scripts/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/ph-commons/nowshowing-pp-cli/master/scripts/install.sh | bash
 #
 # Prefers the prebuilt GitHub release (no local modernc.org/sqlite compile).
 # Falls back to `go install` only when the download cannot be resolved.
@@ -11,10 +11,10 @@
 
 set -euo pipefail
 
-MODULE="github.com/ngpestelos/nowshowing-pp-cli"
+MODULE="github.com/ph-commons/nowshowing-pp-cli"
 BIN="nowshowing-pp-cli"
 GOBIN_DIR="${GOBIN:-$HOME/.local/bin}"
-OWNER_REPO="ngpestelos/nowshowing-pp-cli"
+OWNER_REPO="ph-commons/nowshowing-pp-cli"
 
 log() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33mwarn:\033[0m %s\n' "$*" >&2; }

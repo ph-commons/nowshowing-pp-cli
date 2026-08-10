@@ -9,7 +9,7 @@ builds:
     env:
       - CGO_ENABLED=0
     ldflags:
-      - -s -w -X nowshowing-pp-cli/internal/cli.version={{ .Version }}
+      - -s -w -X github.com/ph-commons/nowshowing-pp-cli/internal/cli.version={{ .Version }}
     targets:
       - darwin_amd64
       - darwin_arm64

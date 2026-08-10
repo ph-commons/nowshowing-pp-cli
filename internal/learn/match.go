@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"nowshowing-pp-cli/internal/learn/entities"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/learn/entities"
 )
 
 // EntityMatch classifies how well a stored learning's resource-side

@@ -14,8 +14,8 @@ import (
 	"sort"
 	"strings"
 
-	"nowshowing-pp-cli/internal/httpx"
-	"nowshowing-pp-cli/internal/titles"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/httpx"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/titles"
 )
 
 const apiBase = "https://www.clickthecity.com/api/movies/theater/"

@@ -18,9 +18,9 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"nowshowing-pp-cli/internal/cli/playbooks"
-	"nowshowing-pp-cli/internal/learn"
-	"nowshowing-pp-cli/internal/store"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/cli/playbooks"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/learn"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/store"
 )
 
 // twoPlaybookFS returns an fstest.MapFS with two minimal playbooks +

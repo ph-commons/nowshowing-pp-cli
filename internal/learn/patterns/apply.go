@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"nowshowing-pp-cli/internal/learn/lookups"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/learn/lookups"
 )
 
 // DefaultJaccardMin matches the recall-side floor. Applying the same

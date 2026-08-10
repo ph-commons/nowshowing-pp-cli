@@ -12,9 +12,9 @@ import (
 
 	mcplib "github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
-	"nowshowing-pp-cli/internal/cliutil"
-	"nowshowing-pp-cli/internal/mcp/bound"
-	"nowshowing-pp-cli/internal/store"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/cliutil"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/mcp/bound"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/store"
 )
 
 func TestMCPPathResolutionMatchesCLIResolverWithHomeEnv(t *testing.T) {

@@ -11,7 +11,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"nowshowing-pp-cli/internal/cliutil"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/cliutil"
 )
 
 func newNovelSearchCmd(flags *rootFlags) *cobra.Command {

@@ -17,14 +17,14 @@ import (
 
 	mcplib "github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
-	"nowshowing-pp-cli/internal/cli"
-	"nowshowing-pp-cli/internal/client"
-	"nowshowing-pp-cli/internal/cliutil"
-	"nowshowing-pp-cli/internal/config"
-	"nowshowing-pp-cli/internal/learn"
-	"nowshowing-pp-cli/internal/mcp/bound"
-	"nowshowing-pp-cli/internal/mcp/cobratree"
-	"nowshowing-pp-cli/internal/store"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/cli"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/client"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/cliutil"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/config"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/learn"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/mcp/bound"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/mcp/cobratree"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/store"
 )
 
 const (

@@ -17,9 +17,9 @@ import (
 	"testing"
 	"time"
 
-	"nowshowing-pp-cli/internal/cli"
-	"nowshowing-pp-cli/internal/cliutil"
-	"nowshowing-pp-cli/internal/learn"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/cli"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/cliutil"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/learn"
 )
 
 // withJournalHome isolates a test in a temp HOME with every journal

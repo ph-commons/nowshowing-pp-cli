@@ -17,7 +17,7 @@ import (
 	"sync"
 	"time"
 
-	"nowshowing-pp-cli/internal/cliutil"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/cliutil"
 )
 
 // The invocation journal records one entry per CLI invocation in dated

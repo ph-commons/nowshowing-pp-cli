@@ -12,7 +12,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"nowshowing-pp-cli/internal/imdb"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/imdb"
 )
 
 func newNovelMoviesImdbCmd(flags *rootFlags) *cobra.Command {

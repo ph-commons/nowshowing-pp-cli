@@ -13,10 +13,10 @@ import (
 	"sync"
 	"testing"
 
-	"nowshowing-pp-cli/internal/cliutil"
-	"nowshowing-pp-cli/internal/learn"
-	"nowshowing-pp-cli/internal/learn/entities"
-	"nowshowing-pp-cli/internal/store"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/cliutil"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/learn"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/learn/entities"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/store"
 )
 
 func unmarshalAgentResults(t *testing.T, stdout string, out any) {

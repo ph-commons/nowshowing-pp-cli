@@ -15,11 +15,11 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"nowshowing-pp-cli/internal/client"
-	"nowshowing-pp-cli/internal/cliutil"
-	"nowshowing-pp-cli/internal/config"
-	"nowshowing-pp-cli/internal/learn"
-	"nowshowing-pp-cli/internal/store"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/client"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/cliutil"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/config"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/learn"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/store"
 )
 
 type rootFlags struct {

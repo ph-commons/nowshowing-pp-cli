@@ -19,7 +19,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"nowshowing-pp-cli/internal/learn/entities"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/learn/entities"
 )
 
 // Warning is one teach-time validation finding. The shape is the JSON

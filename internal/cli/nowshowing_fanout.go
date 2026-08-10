@@ -8,9 +8,9 @@ import (
 	"context"
 	"sync"
 
-	"nowshowing-pp-cli/internal/ctc"
-	"nowshowing-pp-cli/internal/httpx"
-	"nowshowing-pp-cli/internal/registry"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/ctc"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/httpx"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/registry"
 )
 
 // theaterFetch is the outcome of fetching one theater's ClickTheCity schedule.

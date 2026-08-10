@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"nowshowing-pp-cli/internal/cliutil"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/cliutil"
 )
 
 // teachLogStateDirName is the per-user state directory name.

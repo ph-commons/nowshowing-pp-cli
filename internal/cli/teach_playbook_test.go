@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"nowshowing-pp-cli/internal/store"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/store"
 )
 
 // writePlaybookFile is a test helper that drops a fixture file at the

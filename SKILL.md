@@ -13,7 +13,7 @@ metadata:
     install:
       - kind: go
         bins: [nowshowing-pp-cli]
-        module: github.com/mvanhorn/printing-press-library/library/media-and-entertainment/nowshowing/cmd/nowshowing-pp-cli
+        module: github.com/ph-commons/nowshowing-pp-cli/cmd/nowshowing-pp-cli
 ---
 
 # NowShowing — Printing Press CLI
@@ -24,7 +24,7 @@ This skill drives the `nowshowing-pp-cli` binary. **You must verify the CLI is i
 
 1. Install via the Printing Press installer. It defaults binaries to `$HOME/.local/bin` on macOS/Linux and `%LOCALAPPDATA%\Programs\PrintingPress\bin` on Windows:
    ```bash
-   npx -y @mvanhorn/printing-press-library install nowshowing --cli-only
+   curl -fsSL https://raw.githubusercontent.com/ph-commons/nowshowing-pp-cli/master/scripts/install.sh | bash
    ```
 2. Verify: `nowshowing-pp-cli --version`
 3. Ensure the reported install directory is on `$PATH` for the agent/runtime that will invoke this skill.
@@ -32,7 +32,7 @@ This skill drives the `nowshowing-pp-cli` binary. **You must verify the CLI is i
 If the `npx` install fails (no Node, offline, etc.), fall back to a direct Go install (requires Go 1.26.5 or newer). This installs into `$GOPATH/bin` (default `$HOME/go/bin`), so add that directory to `$PATH` instead:
 
 ```bash
-go install github.com/mvanhorn/printing-press-library/library/media-and-entertainment/nowshowing/cmd/nowshowing-pp-cli@latest
+go install github.com/ph-commons/nowshowing-pp-cli/cmd/nowshowing-pp-cli@latest
 ```
 
 If `--version` reports "command not found" after install, the runtime cannot see the binary directory on `$PATH`. Do not proceed with skill commands until verification succeeds.
@@ -453,7 +453,7 @@ Parse `$ARGUMENTS`:
 
 1. Install the MCP server:
    ```bash
-   go install github.com/mvanhorn/printing-press-library/library/media-and-entertainment/nowshowing/cmd/nowshowing-pp-mcp@latest
+   go install github.com/ph-commons/nowshowing-pp-cli/cmd/nowshowing-pp-mcp@latest
    ```
 2. Register with Claude Code:
    ```bash

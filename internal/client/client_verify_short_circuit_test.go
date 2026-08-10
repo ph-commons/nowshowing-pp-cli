@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"nowshowing-pp-cli/internal/config"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/config"
 )
 
 // recordingRoundTripper counts how many times its RoundTrip method is

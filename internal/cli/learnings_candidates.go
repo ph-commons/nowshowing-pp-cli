@@ -28,8 +28,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"nowshowing-pp-cli/internal/learn"
-	"nowshowing-pp-cli/internal/store"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/learn"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/store"
 )
 
 // registerLearningsCandidateCommands attaches the candidate lifecycle

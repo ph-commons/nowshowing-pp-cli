@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"nowshowing-pp-cli/internal/learn/entities"
-	"nowshowing-pp-cli/internal/learn/lookups"
-	"nowshowing-pp-cli/internal/learn/patterns"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/learn/entities"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/learn/lookups"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/learn/patterns"
 )
 
 // Default thresholds. Keep in sync with the documented contract in

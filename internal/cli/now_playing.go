@@ -15,12 +15,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"nowshowing-pp-cli/internal/cliutil"
-	"nowshowing-pp-cli/internal/httpx"
-	"nowshowing-pp-cli/internal/imdb"
-	"nowshowing-pp-cli/internal/popcorn"
-	"nowshowing-pp-cli/internal/registry"
-	"nowshowing-pp-cli/internal/titles"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/cliutil"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/httpx"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/imdb"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/popcorn"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/registry"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/titles"
 )
 
 type cinemaRowView struct {

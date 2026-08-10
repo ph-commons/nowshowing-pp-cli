@@ -9,7 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"nowshowing-pp-cli/internal/cliutil"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/cliutil"
 )
 
 func TestGetBytesOK(t *testing.T) {

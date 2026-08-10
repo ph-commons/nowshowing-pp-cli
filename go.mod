@@ -1,5 +1,4 @@
-module nowshowing-pp-cli
-
+module github.com/ph-commons/nowshowing-pp-cli
 go 1.26.5
 
 require (

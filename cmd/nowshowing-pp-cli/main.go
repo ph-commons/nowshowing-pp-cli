@@ -6,7 +6,7 @@ package main
 import (
 	"os"
 
-	"nowshowing-pp-cli/internal/cli"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/cli"
 )
 
 func main() {

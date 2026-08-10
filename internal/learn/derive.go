@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"nowshowing-pp-cli/internal/store"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/store"
 )
 
 // This file owns post-run flag-correction derivation: turning an

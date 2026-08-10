@@ -31,9 +31,9 @@ import (
 	"strings"
 	"sync"
 
-	"nowshowing-pp-cli/internal/cli/playbooks"
-	"nowshowing-pp-cli/internal/learn"
-	"nowshowing-pp-cli/internal/store"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/cli/playbooks"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/learn"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/store"
 )
 
 // playbookSeedSentinelFamily is the synthetic query_family used to

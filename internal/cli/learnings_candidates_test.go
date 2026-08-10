@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"nowshowing-pp-cli/internal/learn"
-	"nowshowing-pp-cli/internal/store"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/learn"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/store"
 )
 
 // seedCandidate derives one candidate row directly through the store

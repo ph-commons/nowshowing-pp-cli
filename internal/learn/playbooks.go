@@ -13,7 +13,7 @@ import (
 	"sort"
 	"strings"
 
-	"nowshowing-pp-cli/internal/learn/entities"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/learn/entities"
 )
 
 // EntityResolver looks up a token in entity_lookups to find its

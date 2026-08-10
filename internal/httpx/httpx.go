@@ -15,7 +15,7 @@ import (
 	"strconv"
 	"time"
 
-	"nowshowing-pp-cli/internal/cliutil"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/cliutil"
 )
 
 // DefaultUserAgent mirrors the required_headers User-Agent in the spec. A

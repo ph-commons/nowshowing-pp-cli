@@ -12,7 +12,7 @@ import (
 	"strings"
 	"unicode"
 
-	"nowshowing-pp-cli/internal/cliutil"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/cliutil"
 )
 
 // LookupRow is the canonical seed-row shape used by both the seeds

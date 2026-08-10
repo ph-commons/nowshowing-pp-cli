@@ -9,7 +9,7 @@
     "handle": "ngpestelos",
     "name": "Nestor G Pestelos Jr"
   },
-  "owner": "ngpestelos",
+  "owner": "ph-commons",
   "printer": "ngpestelos",
   "printer_name": "Nestor G Pestelos Jr",
   "spec_path": "spec.yaml",
@@ -17,7 +17,7 @@
   "spec_checksum": "sha256:d6665279b2e85c4170b3935f6c1099a74223c6f932cabdb57ea53596f77d5015",
   "run_id": "20260728-051711-195ed042",
   "category": "media-and-entertainment",
-  "description": "Metro Manila movie showtimes as a CLI — every tracked cinema in one now-playing board, cross-checked across two sources.",
+  "description": "Metro Manila movie showtimes as a CLI \u2014 every tracked cinema in one now-playing board, cross-checked across two sources.",
   "mcp_binary": "nowshowing-pp-mcp",
   "mcp_tool_count": 1,
   "mcp_public_tool_count": 1,

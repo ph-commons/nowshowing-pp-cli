@@ -20,7 +20,7 @@ import (
 	"strings"
 	"testing"
 
-	"nowshowing-pp-cli/internal/learn/entities"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/learn/entities"
 
 	_ "modernc.org/sqlite"
 )

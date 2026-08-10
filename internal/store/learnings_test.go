@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"nowshowing-pp-cli/internal/store"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/store"
 )
 
 func openLearnings(t *testing.T) *store.Store {

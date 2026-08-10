@@ -14,7 +14,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"nowshowing-pp-cli/internal/config"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/config"
 )
 
 func TestTruncateBody(t *testing.T) {

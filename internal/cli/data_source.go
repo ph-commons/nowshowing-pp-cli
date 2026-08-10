@@ -17,8 +17,8 @@ import (
 	"strings"
 	"time"
 
-	"nowshowing-pp-cli/internal/client"
-	"nowshowing-pp-cli/internal/store"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/client"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/store"
 )
 
 const networkFallbackReason = "api_unreachable"

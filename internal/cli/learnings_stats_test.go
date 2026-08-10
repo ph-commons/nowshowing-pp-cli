@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"nowshowing-pp-cli/internal/store"
+	"github.com/ph-commons/nowshowing-pp-cli/internal/store"
 )
 
 // runLearningsStatsJSON executes `learnings stats --json` against the
