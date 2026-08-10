@@ -26,3 +26,9 @@ dogfood-results.json
 workflow-verify-report.json
 apify-actor-audit-report.json
 .printing-press-pii-polish.json
+
+# change-pipeline worktrees (parallel agents)
+.worktrees/
+
+# change-pipeline run state
+.pipeline/state/

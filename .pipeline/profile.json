@@ -1,0 +1,28 @@
+{
+  "repo_root": "$HOME/src/nowshowing-pp-cli",
+  "git_owner": "ph-commons",
+  "state_dir": null,
+  "projects": {
+    "nowshowing-pp-cli": {
+      "trunk": "master",
+      "isolation": "worktree",
+      "worktree_root": null,
+      "test_cmd": "go test ./...",
+      "typecheck_cmd": "go vet ./...",
+      "conventions_file": "AGENTS.md",
+      "max_steps": 8
+    }
+  },
+  "stages": {
+    "architectural_review": null,
+    "security_depth": "general"
+  },
+  "sub_skills": {
+    "plan": null,
+    "red_team": null,
+    "execute": null,
+    "code_review": null,
+    "security": null,
+    "pr": null
+  }
+}
