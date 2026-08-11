@@ -7,6 +7,8 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/ph-commons/nowshowing-pp-cli/internal/cliutil"
@@ -55,5 +57,106 @@ func TestGetBytesNon2xx(t *testing.T) {
 
 	if _, err := New().GetBytes(context.Background(), srv.URL); err == nil {
 		t.Error("expected error on HTTP 500")
+	}
+}
+
+// TestNewHasNonZeroTimeout is the acceptance-criteria test for issue #9:
+// "unit test: client has non-zero Timeout".
+func TestNewHasNonZeroTimeout(t *testing.T) {
+	c := New()
+	if c.hc.Timeout <= 0 {
+		t.Fatalf("New().hc.Timeout = %v, want > 0", c.hc.Timeout)
+	}
+}
+
+func TestCheckRedirectAllowsAllowlistedHost(t *testing.T) {
+	req := &http.Request{URL: &url.URL{Scheme: "https", Host: "www.clickthecity.com"}}
+	if err := checkRedirect(req, nil); err != nil {
+		t.Errorf("checkRedirect for allowlisted host = %v, want nil", err)
+	}
+}
+
+// TestCheckRedirectAllowsAllowlistedHostCaseInsensitive covers the
+// code-review nit that hostnames are case-insensitive (RFC 4343): a
+// redirect to an upper-case variant of an allowlisted host must not be
+// spuriously blocked.
+func TestCheckRedirectAllowsAllowlistedHostCaseInsensitive(t *testing.T) {
+	req := &http.Request{URL: &url.URL{Scheme: "https", Host: "WWW.POPCORN.APP"}}
+	if err := checkRedirect(req, nil); err != nil {
+		t.Errorf("checkRedirect for upper-case allowlisted host = %v, want nil", err)
+	}
+}
+
+func TestCheckRedirectBlocksNonAllowlistedHost(t *testing.T) {
+	req := &http.Request{URL: &url.URL{Scheme: "https", Host: "evil.example.com"}}
+	err := checkRedirect(req, nil)
+	if err == nil {
+		t.Fatal("checkRedirect for non-allowlisted host = nil, want error")
+	}
+	if !strings.Contains(err.Error(), "disallowed") {
+		t.Errorf("checkRedirect error = %q, want it to mention the disallowed host", err.Error())
+	}
+}
+
+// TestCheckRedirectBlocksNonHTTPSScheme covers a downgrade bypass: a redirect
+// hop whose host is allowlisted but whose scheme is plain http must still be
+// blocked, since every allowlisted host is only ever addressed over https.
+func TestCheckRedirectBlocksNonHTTPSScheme(t *testing.T) {
+	req := &http.Request{URL: &url.URL{Scheme: "http", Host: "www.clickthecity.com"}}
+	err := checkRedirect(req, nil)
+	if err == nil {
+		t.Fatal("checkRedirect for http-scheme allowlisted host = nil, want error")
+	}
+	if !strings.Contains(err.Error(), "https") {
+		t.Errorf("checkRedirect error = %q, want it to mention the disallowed scheme", err.Error())
+	}
+}
+
+// TestCheckRedirectBlocksOffAllowlistHostOnSecondHop proves checkRedirect
+// re-validates the host on every hop, not just the first: a chain that
+// starts on an allowlisted host and then redirects again to a
+// non-allowlisted host must be blocked on that second hop.
+func TestCheckRedirectBlocksOffAllowlistHostOnSecondHop(t *testing.T) {
+	first := &http.Request{URL: &url.URL{Scheme: "https", Host: "www.clickthecity.com"}}
+	if err := checkRedirect(first, nil); err != nil {
+		t.Fatalf("checkRedirect for first (allowlisted) hop = %v, want nil", err)
+	}
+
+	second := &http.Request{URL: &url.URL{Scheme: "https", Host: "evil.example.com"}}
+	err := checkRedirect(second, []*http.Request{first})
+	if err == nil {
+		t.Fatal("checkRedirect for second (off-allowlist) hop = nil, want error")
+	}
+}
+
+func TestCheckRedirectStopsAfterMaxRedirects(t *testing.T) {
+	via := make([]*http.Request, maxRedirects)
+	req := &http.Request{URL: &url.URL{Scheme: "https", Host: "www.clickthecity.com"}}
+	err := checkRedirect(req, via)
+	if err == nil {
+		t.Fatal("checkRedirect at redirect cap = nil, want error")
+	}
+}
+
+// TestGetBytesFollowsRedirectToOffAllowlistHostFails is the acceptance-
+// criteria test for issue #9: "redirect off-allowlist fails". Both test
+// servers listen on 127.0.0.1:<port>, which is never in
+// allowedRedirectHosts, so this deterministically exercises the block
+// branch through the real Client.Do path without touching the network or
+// requiring control over a real allowlisted domain.
+func TestGetBytesFollowsRedirectToOffAllowlistHostFails(t *testing.T) {
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("should never be reached"))
+	}))
+	defer target.Close()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, target.URL, http.StatusFound)
+	}))
+	defer srv.Close()
+
+	_, err := New().GetBytes(context.Background(), srv.URL)
+	if err == nil {
+		t.Fatal("expected GetBytes to fail on redirect to an off-allowlist host, got nil error")
 	}
 }
