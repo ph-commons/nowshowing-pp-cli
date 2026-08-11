@@ -18,6 +18,8 @@ curl -fsSL https://raw.githubusercontent.com/ph-commons/nowshowing-pp-cli/master
 
 Installs `nowshowing-pp-cli` (and companion MCP binary when present in the release) into `$GOBIN` or `~/.local/bin`. Requires a matching GitHub release asset for your OS/arch.
 
+Verifies the downloaded tarball's SHA-256 against the release's published `checksums.txt` before extracting anything; the install aborts (non-zero exit) if `checksums.txt` is missing or the hash doesn't match, rather than silently falling back to a source build.
+
 ### Go install
 
 Requires Go 1.26.5+:
