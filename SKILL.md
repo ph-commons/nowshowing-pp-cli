@@ -157,7 +157,7 @@ Add `--agent` to any command. Expands to: `--json --compact --no-input --no-colo
 - **Previewable** — `--dry-run` shows the request without sending
 - **Offline-friendly** — sync/search commands can use the local SQLite store when available
 - **Non-interactive** — never prompts, every input is a flag
-- **Read-only** — do not use this CLI for create, update, delete, publish, comment, upvote, invite, order, send, or other mutating requests
+- **Read-only** — do not use this CLI for create, update, delete, publish, comment, upvote, invite, order, send, or other mutating requests. This does not mean offline: read tools are network-active — see "MCP: network-active, and which tools write" below for the MCP surface specifically
 
 ### Response envelope
 
@@ -198,6 +198,22 @@ Agents should treat the CLI's path resolver as part of the runtime contract:
   ```
 
 Fleet precedence: an inherited per-kind env var overrides an explicit `--home` for that kind. Use `NOWSHOWING_HOME` or per-kind vars as durable fleet levers, and use `--home` only for a single invocation. Relocation is not reversible by unsetting env vars; move files manually before clearing `NOWSHOWING_HOME`, or `doctor` will not find credentials left under the former root.
+
+## MCP: network-active, and which tools write
+
+The MCP server is not offline or sandboxed. `theater_showtimes`, `theater <slug>`, `now-playing`, `search`, `popcorn`, and `movies imdb` all make live outbound HTTP calls on every invocation — to ClickTheCity, popcorn.app, and/or IMDb depending on the tool. `theaters`, `workflow status`, `sql`, `context`, `recall`, `learnings *`, and `playbook list` are local-only (static registry or local SQLite/store reads, no network call). "Read-only" describes the contract with those remote services (no create/update/delete/mutate) — it does not mean the tool call stays on this machine.
+
+Tools/commands that do **not** carry the `mcp:read-only` annotation:
+
+- **Local-write** (`mcp:local-write` — writes land only in this CLI's own local store, never a third party): `teach`, `teach-pattern`, `teach-lookup`, `teach-playbook`, `playbook amend`, `learnings candidates confirm <id>`.
+- **No safety annotation** (MCP hosts default to "could write or delete," confirming per call): `learnings forget <query>`, `learnings candidates reject <id>`. Both delete/tombstone rows in the local store only.
+
+None of the above reach a third party — the writes are local SQLite/local-store only. `learnings candidates purge` also writes locally but carries `mcp:hidden` and is not exposed as an MCP tool at all.
+
+Two adjacent agent-facing risks already have merged fixes, cross-linked here:
+
+- [#10](https://github.com/ph-commons/nowshowing-pp-cli/issues/10) — the MCP HTTP transport binds loopback-only by default; see "MCP Server Installation" below for the full detail (including that it still has no built-in authentication).
+- [#8](https://github.com/ph-commons/nowshowing-pp-cli/issues/8) — `--deliver webhook:<url>` is hardened against SSRF and is blocked from the MCP tool surface entirely; see "Output Delivery" below.
 
 ## Automatic learning
 

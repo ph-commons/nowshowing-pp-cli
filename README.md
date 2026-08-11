@@ -76,6 +76,12 @@ To install:
 
 Requires Claude Desktop 1.0.0 or later. Pre-built bundles ship for macOS Apple Silicon (`darwin-arm64`) and Windows (`amd64`, `arm64`); for other platforms, use the manual config below.
 
+### MCP is network-active
+
+The MCP server is **not** offline or sandboxed. Its read tools (`theater_showtimes`, `now-playing`, `search`, `popcorn`, `movies imdb`, and the typed `theater <slug>` endpoint) make live outbound HTTP calls to ClickTheCity, popcorn.app, and IMDb — as applicable per tool — on every invocation. "Read-only" describes these tools' contract with the *remote* services (no create/update/delete/mutate), not an absence of network activity: every one of them talks to the internet each time an agent calls it. `SKILL.md`'s "MCP: network-active, and which tools write" section lists the few tools that also write, but only to this CLI's own local store, never to a third party.
+
+Two related agent-facing risks already have merged fixes: the MCP server's optional `--transport http` mode binds loopback-only by default and has no built-in authentication ([#10](https://github.com/ph-commons/nowshowing-pp-cli/issues/10)); the `--deliver webhook:<url>` output sink is hardened against SSRF and is blocked from the MCP tool surface entirely, so it cannot be reached by an MCP caller ([#8](https://github.com/ph-commons/nowshowing-pp-cli/issues/8)). See `SKILL.md`'s "MCP Server Installation" and "Output Delivery" sections for the full detail on each.
+
 <details>
 <summary>Manual JSON config (advanced)</summary>
 
@@ -294,7 +300,7 @@ This CLI is designed for AI agent consumption:
 - **Pipeable** - `--json` output to stdout, errors to stderr
 - **Filterable** - `--select id,name` returns only fields you need
 - **Previewable** - `--dry-run` shows the request without sending
-- **Read-only by default** - this CLI does not create, update, delete, publish, send, or mutate remote resources
+- **Read-only by default** - this CLI does not create, update, delete, publish, send, or mutate remote resources. This is a contract about not mutating remote state, not about network activity: reads still make live outbound calls to ClickTheCity, popcorn.app, and IMDb as applicable — see "MCP is network-active" above for the MCP surface specifically
 - **Offline-friendly** - sync/search commands can use the local SQLite store when available
 - **Agent-safe by default** - no colors or formatting unless `--human-friendly` is set
 
