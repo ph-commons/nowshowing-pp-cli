@@ -5,8 +5,12 @@ package cli
 
 import (
 	"bytes"
+	"context"
+	"crypto/tls"
 	"fmt"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -89,19 +93,44 @@ func deliverFile(path string, body []byte) error {
 	return nil
 }
 
-func deliverWebhook(url string, body []byte, compact bool) error {
+// deliverTLSConfig overrides the webhook client's TLS configuration.
+// nil (default) uses Go's standard trust store — production behavior is
+// unchanged. Tests set this to trust an httptest.NewTLSServer's
+// self-signed certificate so the https code path can be exercised
+// hermetically (see internal/cli/deliver_test.go).
+var deliverTLSConfig *tls.Config
+
+func deliverWebhook(target string, body []byte, compact bool) error {
+	parsed, err := url.Parse(target)
+	if err != nil {
+		return fmt.Errorf("parsing webhook url: %w", err)
+	}
+	if parsed.Scheme == "http" {
+		fmt.Fprintf(deliverStderr, "warning: --deliver webhook %s uses plain http; output (including any secrets in it) travels in cleartext — prefer https\n", target)
+	}
+
 	contentType := "application/json"
 	if compact {
 		contentType = "application/x-ndjson"
 	}
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, target, bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("building webhook request: %w", err)
 	}
 	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("User-Agent", "nowshowing-pp-cli/deliver")
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	allowlist := parseAllowlist()
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return fmt.Errorf("refusing to follow webhook redirect to %s: --deliver does not follow redirects; point it at the final URL directly", req.URL)
+		},
+		Transport: &http.Transport{
+			DialContext:     safeDialContext(allowlist),
+			TLSClientConfig: deliverTLSConfig,
+		},
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("posting to webhook: %w", err)
@@ -111,4 +140,64 @@ func deliverWebhook(url string, body []byte, compact bool) error {
 		return fmt.Errorf("webhook returned %s", resp.Status)
 	}
 	return nil
+}
+
+// safeDialContext returns a Transport.DialContext hook that resolves the
+// host itself and validates the SSRF denylist/allowlist policy against
+// the resolved IP immediately before dialing it — closing the gap a
+// request-build-time-only check would leave open (the transport would
+// otherwise re-resolve the hostname at connect time, so a DNS answer
+// that changes between check and connect — DNS rebinding — could slip
+// an unvalidated IP through). Dialing the already-validated IP directly
+// (instead of letting the transport re-resolve the hostname) means
+// validation and connection always agree on the same address.
+func safeDialContext(allowlist []string) func(ctx context.Context, network, addr string) (net.Conn, error) {
+	dialer := &net.Dialer{Timeout: 10 * time.Second}
+	resolver := net.DefaultResolver
+	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+		host, port, err := net.SplitHostPort(addr)
+		if err != nil {
+			return nil, fmt.Errorf("parsing dial address %q: %w", addr, err)
+		}
+		if literal := net.ParseIP(host); literal != nil {
+			if verr := validateResolvedIP(host, literal, allowlist); verr != nil {
+				return nil, verr
+			}
+			return dialer.DialContext(ctx, network, addr)
+		}
+		ips, err := resolver.LookupIPAddr(ctx, host)
+		if err != nil {
+			return nil, fmt.Errorf("resolving webhook host %q: %w", host, err)
+		}
+		// Track validation refusals and dial failures separately so an
+		// SSRF refusal is never masked by a later candidate's unrelated
+		// dial error (e.g. connection refused) — an operator debugging a
+		// blocked webhook should see the actionable "refusing ..."
+		// message, not a generic network error, whenever every candidate
+		// was in fact denylisted.
+		var validationErr, dialErr error
+		for _, ipAddr := range ips {
+			if verr := validateResolvedIP(host, ipAddr.IP, allowlist); verr != nil {
+				if validationErr == nil {
+					validationErr = verr
+				}
+				continue
+			}
+			conn, derr := dialer.DialContext(ctx, network, net.JoinHostPort(ipAddr.IP.String(), port))
+			if derr != nil {
+				if dialErr == nil {
+					dialErr = derr
+				}
+				continue
+			}
+			return conn, nil
+		}
+		if validationErr != nil {
+			return nil, validationErr
+		}
+		if dialErr != nil {
+			return nil, dialErr
+		}
+		return nil, fmt.Errorf("no usable address for webhook host %q", host)
+	}
 }
