@@ -4,6 +4,8 @@
 
 NowShowing turns ClickTheCity's per-theater schedules into an agent-native CLI. now-playing fans out across every tracked Metro Manila and Iloilo cinema in one call, cross-checks each showtime against popcorn.app for two-source confidence, and folds in verified ticket prices and IMDb links.
 
+> **Unofficial.** Independent, community-built tool — **not affiliated with, endorsed by, or supported by ClickTheCity, popcorn.app, IMDb, or any theater operator**. It reads publicly available showtime and ticketing pages; upstream structure can change without notice. For official showtimes and ticketing, use each theater's own website or box office. Never rely on this tool for life-safety decisions or as a substitute for official/licensed feeds.
+
 ## Install
 
 **Source:** [github.com/ph-commons/nowshowing-pp-cli](https://github.com/ph-commons/nowshowing-pp-cli) (PH Commons)
