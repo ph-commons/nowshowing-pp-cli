@@ -42,14 +42,16 @@ Check [the latest release](https://github.com/ph-commons/nowshowing-pp-cli/relea
 
 ### Pre-built binary (manual)
 
-Download from the [latest release](https://github.com/ph-commons/nowshowing-pp-cli/releases/latest). On macOS: `xattr -d com.apple.quarantine <binary>`. On Unix: `chmod +x <binary>`.
+Download the archive for your OS/arch (e.g. `nowshowing-pp-cli_<version>_darwin_arm64.tar.gz`) from the [latest release](https://github.com/ph-commons/nowshowing-pp-cli/releases/latest), extract it, then: on macOS: `xattr -d com.apple.quarantine <binary>`; on Unix: `chmod +x <binary>`.
 
-To verify without running the installer script, download `checksums.txt` from the same release and compare by hand before making the binary executable:
+To verify without running the installer script, download `checksums.txt` from the same release into the **same directory as the still-archived `.tar.gz`/`.zip`** (before extracting) and check it there — `checksums.txt` has an entry per archive filename, not per extracted binary:
 
 ```bash
 sha256sum -c checksums.txt --ignore-missing   # Linux
 shasum -a 256 -c checksums.txt --ignore-missing  # macOS
 ```
+
+Then extract and proceed with `xattr`/`chmod` as above.
 
 ### Agent skill (`pp-nowshowing`)
 
