@@ -20,6 +20,50 @@ log() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33mwarn:\033[0m %s\n' "$*" >&2; }
 die() { printf '\033[1;31merror:\033[0m %s\n' "$*" >&2; exit 1; }
 
+# Verify a downloaded release tarball's SHA-256 against goreleaser's published
+# checksums.txt before any extraction. Fails closed (die) on any problem:
+# unreachable checksums file, no entry for this tarball, hash mismatch, or no
+# hashing tool available. Does NOT fall back to source build on failure here —
+# that fallback exists for network/availability problems, not for a security
+# signal (see issue #7).
+verify_checksum() {
+  local tmp_dir="$1" tarball_name="$2" checksums_url="$3"
+  local checksums_file="$tmp_dir/checksums.txt"
+
+  if ! curl -fsSL "$checksums_url" -o "$checksums_file" 2>/dev/null; then
+    die "checksum verification failed: could not download $checksums_url (refusing to install unverified binary)"
+  fi
+
+  local expected
+  # `|| true` is required here, not optional style: under `set -euo pipefail`,
+  # a no-match `grep -F` exits 1, `pipefail` propagates that to the whole
+  # pipeline, and this sits inside a plain `var=$(...)` assignment (not an
+  # `if`/`&&`/`||`), which is NOT set-e-exempt. Without `|| true` the shell
+  # exits right here on a "no entry" tarball, before the die() below ever
+  # runs, and the caller gets a silent, unexplained hang/stop with no
+  # diagnostic instead of the intended clear error message.
+  expected="$(grep -F "  ${tarball_name}" "$checksums_file" 2>/dev/null | awk '{print $1}' | head -1 || true)"
+  [ -n "$expected" ] || die "checksum verification failed: no entry for $tarball_name in checksums.txt (refusing to install unverified binary)"
+
+  local actual
+  # Same `|| true` reasoning as the `expected=` assignment above: if the
+  # tarball vanished/unreadable between download and here, sha256sum/shasum
+  # exits nonzero, pipefail propagates it into this assignment, and without
+  # `|| true` the shell would exit here with a raw tool error instead of the
+  # intended die() message below.
+  if command -v sha256sum >/dev/null 2>&1; then
+    actual="$(sha256sum "$tmp_dir/$tarball_name" 2>/dev/null | awk '{print $1}' || true)"
+  elif command -v shasum >/dev/null 2>&1; then
+    actual="$(shasum -a 256 "$tmp_dir/$tarball_name" 2>/dev/null | awk '{print $1}' || true)"
+  else
+    die "checksum verification failed: neither sha256sum nor shasum is available (refusing to install unverified binary)"
+  fi
+  [ -n "$actual" ] || die "checksum verification failed: unable to hash $tarball_name (file missing or unreadable)"
+
+  [ "$expected" = "$actual" ] || die "checksum MISMATCH for $tarball_name: expected $expected, got $actual (refusing to install — release asset may be tampered)"
+  log "Checksum verified: $tarball_name"
+}
+
 mkdir -p "$GOBIN_DIR"
 
 os="$(uname -s | tr '[:upper:]' '[:lower:]')"
@@ -38,9 +82,15 @@ if [ -n "$arch" ] && command -v curl >/dev/null 2>&1; then
     url="https://github.com/${OWNER_REPO}/releases/download/v${ver}/${tarball}"
     log "Downloading prebuilt $BIN v$ver ($os/$arch)"
     tmp="$(mktemp -d)"
-    if curl -fsSL "$url" -o "$tmp/$tarball" 2>/dev/null && tar -xzf "$tmp/$tarball" -C "$GOBIN_DIR" 2>/dev/null; then
-      chmod +x "$GOBIN_DIR/nowshowing-pp-cli" "$GOBIN_DIR/nowshowing-pp-mcp" 2>/dev/null || true
-      install_ok=true
+    if curl -fsSL "$url" -o "$tmp/$tarball" 2>/dev/null; then
+      checksums_url="https://github.com/${OWNER_REPO}/releases/download/v${ver}/checksums.txt"
+      verify_checksum "$tmp" "$tarball" "$checksums_url"
+      if tar -xzf "$tmp/$tarball" -C "$GOBIN_DIR" 2>/dev/null; then
+        chmod +x "$GOBIN_DIR/nowshowing-pp-cli" "$GOBIN_DIR/nowshowing-pp-mcp" 2>/dev/null || true
+        install_ok=true
+      else
+        warn "extraction failed after checksum verification; will try building from source."
+      fi
     else
       warn "prebuilt download failed ($url); will try building from source."
     fi
