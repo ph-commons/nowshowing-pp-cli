@@ -118,3 +118,52 @@ func TestDeliverWebhookHTTPSAllowlistedSucceeds(t *testing.T) {
 		t.Fatalf("expected https webhook with a trusted cert to succeed, got: %v", err)
 	}
 }
+
+// TestDeliverWebhookHostnameResolutionSucceedsWhenAllowlisted exercises the
+// hostname-resolution branch of safeDialContext (resolver.LookupIPAddr +
+// the multi-candidate loop), which none of the other tests reach — they
+// all target an httptest server by its IP-literal URL, so net.ParseIP(host)
+// short-circuits straight to the dial-the-literal path. Rewriting the
+// target to "localhost" forces an actual DNS lookup, proving the resolved
+// candidate gets validated and dialed correctly when allowlisted.
+func TestDeliverWebhookHostnameResolutionSucceedsWhenAllowlisted(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	target := strings.Replace(srv.URL, "127.0.0.1", "localhost", 1)
+	if target == srv.URL {
+		t.Fatalf("test server URL %q did not contain 127.0.0.1 to rewrite to localhost", srv.URL)
+	}
+
+	t.Setenv(deliverAllowHostsEnv, "127.0.0.1,::1")
+	if err := deliverWebhook(target, []byte(`{"ok":true}`), false); err != nil {
+		t.Fatalf("expected allowlisted hostname-resolved webhook to succeed, got: %v", err)
+	}
+}
+
+// TestDeliverWebhookHostnameResolutionRejectsWhenNotAllowlisted is the
+// fail-closed counterpart: the same DNS-resolution path, but without an
+// allowlist entry, must still refuse — proving the denylist check applies
+// to every resolved candidate, not just literal-IP targets.
+func TestDeliverWebhookHostnameResolutionRejectsWhenNotAllowlisted(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	target := strings.Replace(srv.URL, "127.0.0.1", "localhost", 1)
+	if target == srv.URL {
+		t.Fatalf("test server URL %q did not contain 127.0.0.1 to rewrite to localhost", srv.URL)
+	}
+
+	t.Setenv(deliverAllowHostsEnv, "")
+	err := deliverWebhook(target, []byte(`{"ok":true}`), false)
+	if err == nil {
+		t.Fatal("expected hostname-resolved loopback webhook to be rejected, got nil error")
+	}
+	if !strings.Contains(err.Error(), "refusing") {
+		t.Errorf("expected a fail-closed refusal error, got: %v", err)
+	}
+}

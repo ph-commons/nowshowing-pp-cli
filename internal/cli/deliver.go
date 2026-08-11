@@ -124,7 +124,7 @@ func deliverWebhook(target string, body []byte, compact bool) error {
 	client := &http.Client{
 		Timeout: 30 * time.Second,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return fmt.Errorf("refusing to follow webhook redirect to %s (redirects are not validated; point --deliver at the final URL — this is stricter than issue #8 requires but a common SSRF vector, see the plan's Known Residual Risk section for the operational tradeoff)", req.URL)
+			return fmt.Errorf("refusing to follow webhook redirect to %s: --deliver does not follow redirects; point it at the final URL directly", req.URL)
 		},
 		Transport: &http.Transport{
 			DialContext:     safeDialContext(allowlist),
@@ -169,22 +169,35 @@ func safeDialContext(allowlist []string) func(ctx context.Context, network, addr
 		if err != nil {
 			return nil, fmt.Errorf("resolving webhook host %q: %w", host, err)
 		}
-		var lastErr error
+		// Track validation refusals and dial failures separately so an
+		// SSRF refusal is never masked by a later candidate's unrelated
+		// dial error (e.g. connection refused) — an operator debugging a
+		// blocked webhook should see the actionable "refusing ..."
+		// message, not a generic network error, whenever every candidate
+		// was in fact denylisted.
+		var validationErr, dialErr error
 		for _, ipAddr := range ips {
 			if verr := validateResolvedIP(host, ipAddr.IP, allowlist); verr != nil {
-				lastErr = verr
+				if validationErr == nil {
+					validationErr = verr
+				}
 				continue
 			}
 			conn, derr := dialer.DialContext(ctx, network, net.JoinHostPort(ipAddr.IP.String(), port))
 			if derr != nil {
-				lastErr = derr
+				if dialErr == nil {
+					dialErr = derr
+				}
 				continue
 			}
 			return conn, nil
 		}
-		if lastErr == nil {
-			lastErr = fmt.Errorf("no usable address for webhook host %q", host)
+		if validationErr != nil {
+			return nil, validationErr
 		}
-		return nil, lastErr
+		if dialErr != nil {
+			return nil, dialErr
+		}
+		return nil, fmt.Errorf("no usable address for webhook host %q", host)
 	}
 }
