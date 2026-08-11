@@ -76,6 +76,17 @@ func TestCheckRedirectAllowsAllowlistedHost(t *testing.T) {
 	}
 }
 
+// TestCheckRedirectAllowsAllowlistedHostCaseInsensitive covers the
+// code-review nit that hostnames are case-insensitive (RFC 4343): a
+// redirect to an upper-case variant of an allowlisted host must not be
+// spuriously blocked.
+func TestCheckRedirectAllowsAllowlistedHostCaseInsensitive(t *testing.T) {
+	req := &http.Request{URL: &url.URL{Scheme: "https", Host: "WWW.POPCORN.APP"}}
+	if err := checkRedirect(req, nil); err != nil {
+		t.Errorf("checkRedirect for upper-case allowlisted host = %v, want nil", err)
+	}
+}
+
 func TestCheckRedirectBlocksNonAllowlistedHost(t *testing.T) {
 	req := &http.Request{URL: &url.URL{Scheme: "https", Host: "evil.example.com"}}
 	err := checkRedirect(req, nil)

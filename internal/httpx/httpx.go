@@ -9,11 +9,11 @@ package httpx
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ph-commons/nowshowing-pp-cli/internal/cliutil"
@@ -62,9 +62,13 @@ var allowedRedirectHosts = map[string]struct{}{
 // blocked on that second hop, not just checked once up front.
 func checkRedirect(req *http.Request, via []*http.Request) error {
 	if len(via) >= maxRedirects {
-		return errors.New("stopped after 10 redirects")
+		return fmt.Errorf("stopped after %d redirects", maxRedirects)
 	}
-	host := req.URL.Hostname()
+	// Lower-case before lookup: allowedRedirectHosts keys are all lower-case,
+	// and hostnames are case-insensitive (RFC 4343) -- a redirect to
+	// "WWW.POPCORN.APP" is the same host as "www.popcorn.app" and must not
+	// be spuriously blocked.
+	host := strings.ToLower(req.URL.Hostname())
 	if _, ok := allowedRedirectHosts[host]; !ok {
 		return fmt.Errorf("redirect to disallowed host %q blocked", host)
 	}
