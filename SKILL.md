@@ -416,6 +416,22 @@ Every command accepts `--deliver <sink>`. The output goes to the named sink in a
 
 Unknown schemes are refused with a structured error naming the supported set. Webhook failures return non-zero and log the URL + HTTP status on stderr.
 
+`webhook:<url>` targets are validated before every connection: loopback,
+link-local (including the `169.254.169.254` cloud-metadata address),
+RFC 1918 private ranges, CGNAT (`100.64.0.0/10`), multicast, the limited
+broadcast address, and IPv6 unique-local/link-local addresses are refused
+by default, fail closed, and are re-checked at actual-connect time (not
+just when the request is built) so a DNS answer that changes between
+validation and connection can't slip through. Redirects are never
+followed. Plain `http://` targets are allowed but print a stderr warning,
+since the delivered body travels in cleartext. Set
+`NOWSHOWING_DELIVER_ALLOW_HOSTS` (comma-separated **IP literals or CIDR
+blocks only — hostnames are rejected with a warning**, since a hostname
+entry would trust whatever it resolves to at connect time) to
+deliberately permit an internal sink. `--deliver` is on the
+MCP-blocked-flags list (`internal/mcp/cobratree/shellout.go`), so this
+side channel is not reachable from the default MCP tool surface.
+
 ## Named Profiles
 
 A profile is a saved set of flag values, reused across invocations. Use it when a scheduled or recurring agent reuses the same saved flags while providing different input each run.
