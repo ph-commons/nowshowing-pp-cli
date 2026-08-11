@@ -13,6 +13,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ph-commons/nowshowing-pp-cli/internal/cliutil"
@@ -24,6 +25,65 @@ const DefaultUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleW
 
 const maxResponseBytes = 8 << 20 // 8 MiB ceiling on any single source page
 
+// defaultTimeout bounds every request (including redirect hops) issued by
+// Client. Previously unset, so a hung/slow-loris source page could block a
+// fetch (and the worker holding it) indefinitely. See issue #9 (H3).
+const defaultTimeout = 30 * time.Second
+
+// maxRedirects mirrors net/http's own default cap (and internal/client's
+// identical check) so behavior is consistent across both client stacks.
+const maxRedirects = 10
+
+// allowedRedirectHosts are the only hosts a redirect may hop to. Every entry
+// is a host actually used by one of the three hand-written source packages
+// (ctc, popcorn, imdb) that share this client:
+//   - www.clickthecity.com / clickthecity.com -- internal/ctc
+//   - www.popcorn.app / popcorn.app           -- internal/popcorn (registry.PopcornURL)
+//   - v3.sg.media-imdb.com                    -- internal/imdb suggestion API
+//   - www.imdb.com                            -- IMDb title pages
+//
+// Bare-domain forms are included defensively in case a source redirects to
+// its apex domain; no third-party host is ever added here.
+var allowedRedirectHosts = map[string]struct{}{
+	"www.clickthecity.com": {},
+	"clickthecity.com":     {},
+	"www.popcorn.app":      {},
+	"popcorn.app":          {},
+	"v3.sg.media-imdb.com": {},
+	"www.imdb.com":         {},
+}
+
+// checkRedirect is installed as http.Client.CheckRedirect. It caps redirect
+// chains at maxRedirects (a plain error, not http.ErrUseLastResponse, so
+// Client.Do surfaces it as an error rather than treating the 3xx body as a
+// normal response) and rejects any hop whose target host is not in
+// allowedRedirectHosts. Go calls this once per hop, so a chain that starts on
+// an allowlisted host and then redirects again to a non-allowlisted host is
+// blocked on that second hop, not just checked once up front.
+func checkRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) >= maxRedirects {
+		return fmt.Errorf("stopped after %d redirects", maxRedirects)
+	}
+	// Every allowlisted host is only ever addressed over https (see apiBase,
+	// suggestionBase, and the registry's PopcornURL entries). Without this
+	// check, a compromised or malicious intermediate could 302 an in-flight
+	// request to the plaintext http:// form of an otherwise-allowlisted host,
+	// downgrading the hop out from under TLS even though the host check below
+	// would pass.
+	if req.URL.Scheme != "https" {
+		return fmt.Errorf("redirect to non-https scheme %q blocked", req.URL.Scheme)
+	}
+	// Lower-case before lookup: allowedRedirectHosts keys are all lower-case,
+	// and hostnames are case-insensitive (RFC 4343) -- a redirect to
+	// "WWW.POPCORN.APP" is the same host as "www.popcorn.app" and must not
+	// be spuriously blocked.
+	host := strings.ToLower(req.URL.Hostname())
+	if _, ok := allowedRedirectHosts[host]; !ok {
+		return fmt.Errorf("redirect to disallowed host %q blocked", host)
+	}
+	return nil
+}
+
 // Client is a rate-limited GET client shared by the source packages.
 type Client struct {
 	hc  *http.Client
@@ -32,10 +92,15 @@ type Client struct {
 }
 
 // New returns a Client with the default browser User-Agent and an adaptive
-// limiter that discovers each host's ceiling from 429s.
+// limiter that discovers each host's ceiling from 429s. The underlying
+// http.Client has a 30s Timeout and a CheckRedirect that limits redirect
+// chains to 10 hops and restricts every hop to allowedRedirectHosts.
 func New() *Client {
 	return &Client{
-		hc:  &http.Client{},
+		hc: &http.Client{
+			Timeout:       defaultTimeout,
+			CheckRedirect: checkRedirect,
+		},
 		ua:  DefaultUserAgent,
 		lim: cliutil.NewAdaptiveLimiterAuto(8),
 	}
