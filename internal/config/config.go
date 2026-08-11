@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/pelletier/go-toml/v2"
@@ -97,11 +98,7 @@ func sortedAllowedBaseURLHosts() []string {
 	for h := range allowedBaseURLHosts {
 		out = append(out, h)
 	}
-	for i := 1; i < len(out); i++ {
-		for j := i; j > 0 && out[j] < out[j-1]; j-- {
-			out[j], out[j-1] = out[j-1], out[j]
-		}
-	}
+	sort.Strings(out)
 	return out
 }
 
@@ -163,7 +160,11 @@ func Load(configPath string, allowCustomBaseURL bool) (*Config, error) {
 
 	// Env var overrides
 
-	// Base URL override (used by printing-press verify to point at mock/test servers)
+	// Base URL override (used by printing-press verify to point at mock/test
+	// servers). As of issue #13 (M3), the resulting BaseURL is gated by the
+	// host-allowlist check below — a verify/mock flow pointing this at a
+	// non-allowlisted host (e.g. an httptest.Server) must also set
+	// NOWSHOWING_ALLOW_CUSTOM_BASE_URL=1 to avoid the fail-closed error.
 	if v := os.Getenv("NOWSHOWING_BASE_URL"); v != "" {
 		cfg.BaseURL = v
 	}
