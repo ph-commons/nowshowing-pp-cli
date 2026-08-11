@@ -320,5 +320,16 @@ Static request headers can be configured under `headers`; per-command header ove
 - Run the `list` command to see available items
 
 ### API-specific
-- **theater <slug> returns an error or empty result** — confirm the slug with 'nowshowing-pp-cli theaters'; ClickTheCity requires the browser User-Agent header the CLI sends by default
+- **theater <slug> returns an error or empty result** — confirm the slug with 'nowshowing-pp-cli theaters'; ClickTheCity requires the browser User-Agent header the CLI sends by default (see [Browser User-Agent & ToS posture](#browser-user-agent--tos-posture) below)
 - **a movie shows 'ClickTheCity only' confidence** — popcorn.app has no parseable page for that cinema (common for SM-managed venues); the ClickTheCity times are still valid
+
+### Browser User-Agent & ToS posture
+
+ClickTheCity has no documented public API; its site returns an `{"error"}` response to requests that lack a browser-like `User-Agent` header. Both HTTP client stacks in this repo send the same Chrome-like UA string on every outbound request as a result:
+
+- `internal/httpx/httpx.go` (`DefaultUserAgent`) — the hand-written client shared by the `ctc`, `popcorn`, and `imdb` source packages.
+- `internal/client/client.go` (the CLI Printing Press-generated base client) — used elsewhere in the CLI's request path.
+
+This is not a code vulnerability — see the "Unofficial" disclaimer at the top of this README. It is a ToS/ethics residual worth stating plainly: this project has no agreement with ClickTheCity, popcorn.app, or IMDb, and makes no claim that sending a browser User-Agent is expressly permitted by their terms. It reads publicly served pages the way an ordinary browser visit would; nothing here attempts to bypass authentication, paywalls, or bot detection beyond identifying as a standard browser.
+
+The adaptive rate limiter (`internal/cliutil.AdaptiveLimiter`, wired into both client stacks above) is the mitigation this project relies on to stay polite: it starts at a conservative rate, ramps up only after sustained success, halves its rate on a 429, and honors server-advertised `X-Ratelimit-*` headers when present. Do not remove this limiter or widen parallel fan-out (e.g. `now-playing`'s cross-theater fetch, `search`) without adding equivalent backoff — the ToS residual above gets materially worse if this CLI starts hammering upstream sources instead of pacing itself like a single browser tab would.
