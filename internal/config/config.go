@@ -5,6 +5,7 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -23,7 +24,97 @@ type Config struct {
 	fileConfig    *Config           `toml:"-"`
 }
 
-func Load(configPath string) (*Config, error) {
+// allowedBaseURLHosts is the default host allowlist for the configured
+// BaseURL (env NOWSHOWING_BASE_URL or config-file base_url). A shared-agent-
+// host env (hostile NOWSHOWING_BASE_URL, or a config file an attacker can
+// influence) must not be able to silently retarget the generated HTTP
+// client's browser-UA traffic at an arbitrary or internal host. See issue
+// #13 (M3, parent #6 security review).
+//
+// internal/httpx (issue #9 / PR #20, at time of writing not yet merged)
+// maintains a parallel, larger allowedRedirectHosts list for a different
+// subsystem entirely (redirect-hop gating for the hand-written ctc/popcorn/
+// imdb source clients, which never route through internal/config or
+// internal/client). Consolidating both into one shared allowlist package is
+// a reasonable follow-up once #20 merges; kept separate here so this fix
+// does not depend on an unmerged PR.
+var allowedBaseURLHosts = map[string]struct{}{
+	"clickthecity.com":     {},
+	"www.clickthecity.com": {},
+}
+
+// allowCustomBaseURLEnvVar is the break-glass env var: with it set to "1", a
+// NOWSHOWING_BASE_URL/config base_url pointing at a host outside
+// allowedBaseURLHosts is accepted instead of Load() failing closed.
+// Deliberately a new, dedicated var rather than reusing
+// cliutil.IsVerifyEnv() (PRINTING_PRESS_VERIFY) — auto-bypassing on verify
+// mode would let the exact same hostile-env actor this check defends
+// against flip one more already-broadly-scoped var and defeat the
+// allowlist for free.
+//
+// Residual limitation (accepted for this Medium-severity issue, not
+// hidden): an attacker with full control over the process environment can
+// set both NOWSHOWING_BASE_URL and this var in one shot. The fix raises the
+// bar from "any single env var silently retargets" to "two specific env
+// vars, or an explicit --allow-custom-base-url CLI flag" (the flag requires
+// invocation-level control, which a pure env-var attacker does not
+// automatically have) — it is not a claim of unbypassable isolation.
+const allowCustomBaseURLEnvVar = "NOWSHOWING_ALLOW_CUSTOM_BASE_URL"
+
+// isBaseURLHostAllowed reports whether rawURL's host is in
+// allowedBaseURLHosts. Matching is an exact, case-insensitive string lookup
+// on the parsed hostname (never strings.Contains/HasSuffix), so
+// "notclickthecity.com", "clickthecity.com.evil.com", and
+// "evilclickthecity.com" are all denied, and userinfo tricks like
+// "clickthecity.com@evil.com" resolve to the real host ("evil.com") via
+// net/url and are denied too. A trailing-dot FQDN ("clickthecity.com.") is
+// DNS-equivalent to the bare form, so the trailing dot is trimmed before
+// lookup to avoid a false-positive denial of legitimate traffic.
+//
+// An empty rawURL returns allowed=true — an unconfigured BaseURL is
+// doctor's existing "not configured" case, not a host violation. A non-nil
+// err (rawURL fails to parse — e.g. embedded whitespace or a malformed
+// percent-escape) always means allowed=false: callers must fail closed on
+// a parse error exactly as they would on a resolved-but-disallowed host,
+// never treat "couldn't determine the host" as "so allow it."
+func isBaseURLHostAllowed(rawURL string) (allowed bool, host string, err error) {
+	if strings.TrimSpace(rawURL) == "" {
+		return true, "", nil
+	}
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return false, "", err
+	}
+	host = strings.ToLower(strings.TrimSuffix(u.Hostname(), "."))
+	_, ok := allowedBaseURLHosts[host]
+	return ok, host, nil
+}
+
+// sortedAllowedBaseURLHosts returns allowedBaseURLHosts' keys in a stable
+// (alphabetical) order for deterministic error-message formatting.
+func sortedAllowedBaseURLHosts() []string {
+	out := make([]string, 0, len(allowedBaseURLHosts))
+	for h := range allowedBaseURLHosts {
+		out = append(out, h)
+	}
+	for i := 1; i < len(out); i++ {
+		for j := i; j > 0 && out[j] < out[j-1]; j-- {
+			out[j], out[j-1] = out[j-1], out[j]
+		}
+	}
+	return out
+}
+
+// Load reads the config file (if any), applies env-var overrides, and
+// validates the resulting BaseURL's host against allowedBaseURLHosts.
+// allowCustomBaseURL is the CLI-flag break-glass (--allow-custom-base-url);
+// the allowCustomBaseURLEnvVar env var is always also honored as a second,
+// flag-independent break-glass (needed by callers with no flag surface,
+// e.g. the MCP server). A disallowed host — from the default, the config
+// file, or the env override — makes Load return a non-nil error and a nil
+// *Config, so no caller ever constructs an HTTP client with a disallowed
+// BaseURL.
+func Load(configPath string, allowCustomBaseURL bool) (*Config, error) {
 	cfg := &Config{
 		BaseURL: "https://www.clickthecity.com",
 	}
@@ -76,6 +167,26 @@ func Load(configPath string) (*Config, error) {
 	if v := os.Getenv("NOWSHOWING_BASE_URL"); v != "" {
 		cfg.BaseURL = v
 	}
+
+	// Host allowlist gate. Runs last, against the fully-overlaid BaseURL
+	// (default -> config file -> env override), so a disallowed host from
+	// any of those three sources is caught here, not just the env-var case.
+	// See allowedBaseURLHosts and allowCustomBaseURLEnvVar above (issue #13,
+	// M3).
+	allowed, host, perr := isBaseURLHostAllowed(cfg.BaseURL)
+	if perr != nil {
+		return nil, fmt.Errorf("parsing base_url %q: %w", cfg.BaseURL, perr)
+	}
+	if !allowed {
+		breakGlass := allowCustomBaseURL || os.Getenv(allowCustomBaseURLEnvVar) == "1"
+		if !breakGlass {
+			return nil, fmt.Errorf(
+				"base_url host %q is not in the allowlist (%s); pass --allow-custom-base-url or set %s=1 to override",
+				host, strings.Join(sortedAllowedBaseURLHosts(), ", "), allowCustomBaseURLEnvVar,
+			)
+		}
+	}
+
 	return cfg, nil
 }
 

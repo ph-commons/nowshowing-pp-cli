@@ -150,7 +150,7 @@ func newDoctorCmd(flags *rootFlags) *cobra.Command {
 			}
 
 			// Check config
-			cfg, err := config.Load(flags.configPath)
+			cfg, err := config.Load(flags.configPath, flags.allowCustomBaseURL)
 			if err != nil {
 				report["config"] = fmt.Sprintf("error: %s", err)
 			} else {
