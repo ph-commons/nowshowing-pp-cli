@@ -7,6 +7,8 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/ph-commons/nowshowing-pp-cli/internal/cliutil"
@@ -55,5 +57,64 @@ func TestGetBytesNon2xx(t *testing.T) {
 
 	if _, err := New().GetBytes(context.Background(), srv.URL); err == nil {
 		t.Error("expected error on HTTP 500")
+	}
+}
+
+// TestNewHasNonZeroTimeout is the acceptance-criteria test for issue #9:
+// "unit test: client has non-zero Timeout".
+func TestNewHasNonZeroTimeout(t *testing.T) {
+	c := New()
+	if c.hc.Timeout <= 0 {
+		t.Fatalf("New().hc.Timeout = %v, want > 0", c.hc.Timeout)
+	}
+}
+
+func TestCheckRedirectAllowsAllowlistedHost(t *testing.T) {
+	req := &http.Request{URL: &url.URL{Scheme: "https", Host: "www.clickthecity.com"}}
+	if err := checkRedirect(req, nil); err != nil {
+		t.Errorf("checkRedirect for allowlisted host = %v, want nil", err)
+	}
+}
+
+func TestCheckRedirectBlocksNonAllowlistedHost(t *testing.T) {
+	req := &http.Request{URL: &url.URL{Scheme: "https", Host: "evil.example.com"}}
+	err := checkRedirect(req, nil)
+	if err == nil {
+		t.Fatal("checkRedirect for non-allowlisted host = nil, want error")
+	}
+	if !strings.Contains(err.Error(), "disallowed") {
+		t.Errorf("checkRedirect error = %q, want it to mention the disallowed host", err.Error())
+	}
+}
+
+func TestCheckRedirectStopsAfterMaxRedirects(t *testing.T) {
+	via := make([]*http.Request, maxRedirects)
+	req := &http.Request{URL: &url.URL{Scheme: "https", Host: "www.clickthecity.com"}}
+	err := checkRedirect(req, via)
+	if err == nil {
+		t.Fatal("checkRedirect at redirect cap = nil, want error")
+	}
+}
+
+// TestGetBytesFollowsRedirectToOffAllowlistHostFails is the acceptance-
+// criteria test for issue #9: "redirect off-allowlist fails". Both test
+// servers listen on 127.0.0.1:<port>, which is never in
+// allowedRedirectHosts, so this deterministically exercises the block
+// branch through the real Client.Do path without touching the network or
+// requiring control over a real allowlisted domain.
+func TestGetBytesFollowsRedirectToOffAllowlistHostFails(t *testing.T) {
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("should never be reached"))
+	}))
+	defer target.Close()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, target.URL, http.StatusFound)
+	}))
+	defer srv.Close()
+
+	_, err := New().GetBytes(context.Background(), srv.URL)
+	if err == nil {
+		t.Fatal("expected GetBytes to fail on redirect to an off-allowlist host, got nil error")
 	}
 }
