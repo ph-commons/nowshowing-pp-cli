@@ -30,6 +30,21 @@ func TestIsDisallowedIP(t *testing.T) {
 		{"limited broadcast", "255.255.255.255", true},
 		{"link-local multicast", "224.0.0.1", true},
 		{"global multicast (ssdp)", "239.255.255.250", true},
+		// RFC 4291 IPv4-compatible IPv6 form (deprecated but still
+		// parseable) — net.IP.To4() does NOT unwrap this the way it
+		// unwraps the IPv4-mapped ::ffff:a.b.c.d form, so these must be
+		// caught explicitly by normalizeEmbeddedIPv4 or they'd sail
+		// through under a different notation for the same address.
+		{"ipv4-compatible loopback", "::127.0.0.1", true},
+		{"ipv4-compatible metadata", "::169.254.169.254", true},
+		{"ipv4-compatible rfc1918", "::10.0.0.5", true},
+		// NAT64 well-known prefix (RFC 6052): denied only when the
+		// embedded IPv4 address is itself denylisted, allowed when it's
+		// an ordinary public address (see isDisallowedIP's doc comment
+		// for why the whole prefix isn't blanket-denied).
+		{"nat64 embedding loopback", "64:ff9b::7f00:1", true},
+		{"nat64 embedding metadata", "64:ff9b::a9fe:a9fe", true},
+		{"nat64 embedding public v4", "64:ff9b::808:808", false},
 		{"public v4", "8.8.8.8", false},
 		{"public v6", "2001:4860:4860::8888", false},
 	}
