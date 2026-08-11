@@ -4,8 +4,11 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
+	"io"
+	"net"
 	"os"
 	"strings"
 
@@ -18,15 +21,46 @@ import (
 // The flag surface lets one binary serve stdio locally and streamable HTTP
 // when hosted in a container or remote sandbox, matching the Anthropic
 // guidance that production agents need a remote option.
+//
+// The http transport has no built-in authentication, so it binds a loopback
+// address (127.0.0.1:7777) by default. Binding a non-loopback address --
+// 0.0.0.0, a bare ":PORT" (all interfaces), a LAN/public IP, or a hostname
+// that resolves to one -- requires the explicit --insecure-bind flag, so an
+// operator has to opt in with eyes open rather than being silently exposed.
+// See issue #10 (parent #6, finding H4).
 
 const (
-	defaultHTTPAddr = ":7777"
+	defaultHTTPAddr = "127.0.0.1:7777"
 )
 
 // version is the printed MCP server's version, overridable at build time via ldflags.
 var version = "0.0.0-dev"
 
+// lookupHost resolves a hostname to its addresses. Overridable in tests so
+// resolveBindAddr's hostname branch can be exercised deterministically,
+// without depending on real DNS/hosts-file/network access.
+var lookupHost = net.LookupHost
+
+// startHTTPServer starts the streamable HTTP server on addr. Overridable in
+// tests so the run() dispatch logic (loopback gate, --insecure-bind
+// handling, address pinning) can be exercised without opening a real
+// listener -- a real Start() call blocks serving forever with no
+// cancellation hook.
+var startHTTPServer = func(srv *server.StreamableHTTPServer, addr string) error {
+	return srv.Start(addr)
+}
+
 func main() {
+	os.Exit(run(os.Args[1:], os.Stderr))
+}
+
+// run executes the MCP server for the given CLI args, writing diagnostics to
+// stderr, and returns the process exit code. Factored out of main so tests
+// can drive the actual flag-parsing + loopback-gate + transport-dispatch
+// logic in-process, without a subprocess and without touching the global
+// flag.CommandLine (which calls os.Exit internally and can't be driven from
+// a test).
+func run(args []string, stderr io.Writer) int {
 	// Pin the learn-event surface for this process and every walker
 	// shell-out child, so usage events record surface=mcp.
 	_ = os.Setenv("NOWSHOWING_LEARN_SURFACE", "mcp")
@@ -38,26 +72,48 @@ func main() {
 
 	mcptools.RegisterTools(s)
 
-	transport := flag.String("transport", defaultTransport(), "MCP transport: stdio | http")
-	addr := flag.String("addr", defaultHTTPAddr, "bind address for http transport (host:port or :port)")
-	flag.Parse()
+	fs := flag.NewFlagSet("nowshowing-pp-mcp", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	transport := fs.String("transport", defaultTransport(), "MCP transport: stdio | http")
+	addr := fs.String("addr", defaultHTTPAddr, "bind address for http transport (host:port or :port); must be loopback (127.0.0.1, ::1, localhost) unless --insecure-bind is set")
+	insecureBind := fs.Bool("insecure-bind", false, "allow the http transport to bind a non-loopback address (0.0.0.0, a LAN/public IP, or a hostname that resolves to one) -- the MCP server has no built-in authentication, so only set this when you understand the exposure")
+	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return 0
+		}
+		return 2
+	}
 
 	switch strings.ToLower(*transport) {
 	case "stdio":
 		if err := server.ServeStdio(s); err != nil {
-			fmt.Fprintf(os.Stderr, "MCP server error: %v\n", err)
-			os.Exit(1)
+			fmt.Fprintf(stderr, "MCP server error: %v\n", err)
+			return 1
 		}
+		return 0
 	case "http":
-		httpSrv := server.NewStreamableHTTPServer(s)
-		fmt.Fprintf(os.Stderr, "nowshowing-pp-mcp serving MCP over streamable HTTP at %s\n", *addr)
-		if err := httpSrv.Start(*addr); err != nil {
-			fmt.Fprintf(os.Stderr, "MCP server error: %v\n", err)
-			os.Exit(1)
+		bindAddr, loopback, err := resolveBindAddr(*addr)
+		if err != nil {
+			fmt.Fprintf(stderr, "nowshowing-pp-mcp: cannot verify --addr %q is loopback: %v\n", *addr, err)
+			return 2
 		}
+		if !loopback {
+			if !*insecureBind {
+				fmt.Fprintf(stderr, "nowshowing-pp-mcp: refusing to bind non-loopback address %q for the http transport (no auth is enforced on this server); use a loopback address (127.0.0.1, ::1, localhost) or pass --insecure-bind to bind it anyway\n", *addr)
+				return 2
+			}
+			bindAddr = *addr
+		}
+		httpSrv := server.NewStreamableHTTPServer(s)
+		fmt.Fprintf(stderr, "nowshowing-pp-mcp serving MCP over streamable HTTP at %s\n", bindAddr)
+		if err := startHTTPServer(httpSrv, bindAddr); err != nil {
+			fmt.Fprintf(stderr, "MCP server error: %v\n", err)
+			return 1
+		}
+		return 0
 	default:
-		fmt.Fprintf(os.Stderr, "unknown --transport %q (supported: stdio, http)\n", *transport)
-		os.Exit(2)
+		fmt.Fprintf(stderr, "unknown --transport %q (supported: stdio, http)\n", *transport)
+		return 2
 	}
 }
 
@@ -70,4 +126,54 @@ func defaultTransport() string {
 		return t
 	}
 	return "stdio"
+}
+
+// resolveBindAddr validates that addr (host:port) is loopback-only and
+// returns the address to actually bind. For a literal IP host the address
+// is returned unchanged. For a hostname whose every resolved address is
+// loopback, the address is rewritten to the specific resolved IP
+// (net.JoinHostPort(ips[0], port)) -- pinning the bind to what was just
+// validated, so a second, independent resolution inside the HTTP server's
+// own Listen/ListenAndServe call can't diverge from the address this
+// function approved (a TOCTOU window that would otherwise let a hostname
+// bind a non-loopback address with no --insecure-bind required, e.g. via
+// round-robin DNS, a short TTL, or a resolver cache flush between the two
+// lookups).
+//
+// An empty host (":7777") binds all interfaces and is treated as
+// non-loopback, unchanged. A hostname that resolves to any non-loopback
+// address is also returned unchanged (not pinned) -- it only ever reaches
+// the HTTP server at all when --insecure-bind was set, i.e. the caller
+// already accepted an unpinned, unresolved-guarantee bind.
+//
+// Resolution failure returns an error (fail closed -- never silently
+// treated as loopback). A resolution that returns zero addresses with no
+// error is also treated as an error, not as vacuously "every address is
+// loopback".
+func resolveBindAddr(addr string) (bindAddr string, loopback bool, err error) {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return "", false, err
+	}
+	if host == "" {
+		return addr, false, nil
+	}
+	if ip := net.ParseIP(host); ip != nil {
+		return addr, ip.IsLoopback(), nil
+	}
+
+	ips, err := lookupHost(host)
+	if err != nil {
+		return "", false, fmt.Errorf("resolving %q: %w", host, err)
+	}
+	if len(ips) == 0 {
+		return "", false, fmt.Errorf("%q resolved to no addresses", host)
+	}
+	for _, s := range ips {
+		ip := net.ParseIP(s)
+		if ip == nil || !ip.IsLoopback() {
+			return addr, false, nil
+		}
+	}
+	return net.JoinHostPort(ips[0], port), true, nil
 }
