@@ -46,6 +46,10 @@ type rootFlags struct {
 	maxAge        time.Duration
 	dataSource    string
 	freshnessMeta any
+	// allowCustomBaseURL is the --allow-custom-base-url break-glass: bypasses
+	// config.allowedBaseURLHosts for NOWSHOWING_BASE_URL / config base_url
+	// values outside the default allowlist. See issue #13 (M3).
+	allowCustomBaseURL bool
 
 	// deliverBuf captures command output when --deliver is set to a
 	// non-stdout sink. Flushed to the sink after Execute returns.
@@ -225,6 +229,7 @@ See README.md or the bundled SKILL.md for recipes.`,
 	rootCmd.PersistentFlags().StringVar(&flags.profileName, "profile", "", "Apply values from a saved profile (see 'nowshowing-pp-cli profile list')")
 	rootCmd.PersistentFlags().StringVar(&flags.deliverSpec, "deliver", "", "Route output to a sink: stdout (default), file:<path>, webhook:<url>")
 	rootCmd.PersistentFlags().Float64Var(&flags.rateLimit, "rate-limit", 0, "Max requests per second (0 to disable)")
+	rootCmd.PersistentFlags().BoolVar(&flags.allowCustomBaseURL, "allow-custom-base-url", false, "Allow NOWSHOWING_BASE_URL / config base_url to target a host outside the default allowlist (clickthecity.com, www.clickthecity.com)")
 
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		if _, err := cliutil.SetHomeOverride(flags.homePath); err != nil {
@@ -548,7 +553,7 @@ func ExitCode(err error) int {
 }
 
 func (f *rootFlags) newClient() (*client.Client, error) {
-	cfg, err := config.Load(f.configPath)
+	cfg, err := config.Load(f.configPath, f.allowCustomBaseURL)
 	if err != nil {
 		return nil, configErr(err)
 	}

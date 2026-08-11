@@ -351,7 +351,10 @@ func newMCPClient() (*client.Client, error) {
 }
 
 func newMCPConfig() (*config.Config, error) {
-	cfg, err := config.Load("")
+	// No CLI flag surface here (the MCP server has no rootFlags); the sole
+	// break-glass path is the NOWSHOWING_ALLOW_CUSTOM_BASE_URL env var
+	// config.Load itself checks. See issue #13 (M3).
+	cfg, err := config.Load("", false)
 	if err != nil {
 		return nil, fmt.Errorf("loading config: %w", err)
 	}
