@@ -461,6 +461,15 @@ Parse `$ARGUMENTS`:
    ```
 3. Verify: `claude mcp list`
 
+`stdio` (used above) is the default and recommended transport for local
+agent use. `nowshowing-pp-mcp` also supports `--transport http` for
+local-dev or hosted use — it binds a loopback address (`127.0.0.1:7777`) by
+default and refuses to bind a non-loopback address (`0.0.0.0`, a LAN/public
+IP, a hostname that resolves to one) unless `--insecure-bind` is passed
+explicitly. The HTTP transport has no built-in authentication either way, so
+treat any non-loopback bind as exposing the tool surface to whatever can
+reach that address.
+
 ## Direct Use
 
 1. Check if installed: `which nowshowing-pp-cli`
