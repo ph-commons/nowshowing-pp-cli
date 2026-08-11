@@ -10,6 +10,8 @@ NowShowing turns ClickTheCity's per-theater schedules into an agent-native CLI. 
 
 **Source:** [github.com/ph-commons/nowshowing-pp-cli](https://github.com/ph-commons/nowshowing-pp-cli) (PH Commons)
 
+**Trust model.** The `curl|bash` installer below is a convenience path, not a signed artifact: its trust root is the GitHub org (`ph-commons`), TLS on every fetch (installer script, release API, tarball, checksums), and a SHA-256 checksum check of the downloaded tarball against the release's published `checksums.txt` — not cryptographic signing (no cosign/minisign today; see [#11](https://github.com/ph-commons/nowshowing-pp-cli/issues/11)). On a host you don't fully trust, or where "curl a script from the internet and run it" is against policy, prefer the pinned **Go install** or **Pre-built binary (manual)** paths below instead.
+
 ### Recommended (prebuilt release)
 
 ```bash
@@ -29,9 +31,25 @@ go install github.com/ph-commons/nowshowing-pp-cli/cmd/nowshowing-pp-cli@latest
 go install github.com/ph-commons/nowshowing-pp-cli/cmd/nowshowing-pp-mcp@latest
 ```
 
+**Pinned (recommended for untrusted hosts):** pin to a released tag instead of `@latest` so the build is reproducible and doesn't silently pick up a newer, unreviewed release:
+
+```bash
+go install github.com/ph-commons/nowshowing-pp-cli/cmd/nowshowing-pp-cli@v0.1.1
+go install github.com/ph-commons/nowshowing-pp-cli/cmd/nowshowing-pp-mcp@v0.1.1
+```
+
+Check [the latest release](https://github.com/ph-commons/nowshowing-pp-cli/releases/latest) for the current tag. `go install` builds from source via the Go module proxy/checksum database (`sum.golang.org`) rather than downloading a prebuilt binary, so it sidesteps the release-tarball trust question in `scripts/install.sh` entirely.
+
 ### Pre-built binary (manual)
 
 Download from the [latest release](https://github.com/ph-commons/nowshowing-pp-cli/releases/latest). On macOS: `xattr -d com.apple.quarantine <binary>`. On Unix: `chmod +x <binary>`.
+
+To verify without running the installer script, download `checksums.txt` from the same release and compare by hand before making the binary executable:
+
+```bash
+sha256sum -c checksums.txt --ignore-missing   # Linux
+shasum -a 256 -c checksums.txt --ignore-missing  # macOS
+```
 
 ### Agent skill (`pp-nowshowing`)
 
