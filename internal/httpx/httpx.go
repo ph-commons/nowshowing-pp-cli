@@ -64,6 +64,15 @@ func checkRedirect(req *http.Request, via []*http.Request) error {
 	if len(via) >= maxRedirects {
 		return fmt.Errorf("stopped after %d redirects", maxRedirects)
 	}
+	// Every allowlisted host is only ever addressed over https (see apiBase,
+	// suggestionBase, and the registry's PopcornURL entries). Without this
+	// check, a compromised or malicious intermediate could 302 an in-flight
+	// request to the plaintext http:// form of an otherwise-allowlisted host,
+	// downgrading the hop out from under TLS even though the host check below
+	// would pass.
+	if req.URL.Scheme != "https" {
+		return fmt.Errorf("redirect to non-https scheme %q blocked", req.URL.Scheme)
+	}
 	// Lower-case before lookup: allowedRedirectHosts keys are all lower-case,
 	// and hostnames are case-insensitive (RFC 4343) -- a redirect to
 	// "WWW.POPCORN.APP" is the same host as "www.popcorn.app" and must not

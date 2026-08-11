@@ -98,6 +98,37 @@ func TestCheckRedirectBlocksNonAllowlistedHost(t *testing.T) {
 	}
 }
 
+// TestCheckRedirectBlocksNonHTTPSScheme covers a downgrade bypass: a redirect
+// hop whose host is allowlisted but whose scheme is plain http must still be
+// blocked, since every allowlisted host is only ever addressed over https.
+func TestCheckRedirectBlocksNonHTTPSScheme(t *testing.T) {
+	req := &http.Request{URL: &url.URL{Scheme: "http", Host: "www.clickthecity.com"}}
+	err := checkRedirect(req, nil)
+	if err == nil {
+		t.Fatal("checkRedirect for http-scheme allowlisted host = nil, want error")
+	}
+	if !strings.Contains(err.Error(), "https") {
+		t.Errorf("checkRedirect error = %q, want it to mention the disallowed scheme", err.Error())
+	}
+}
+
+// TestCheckRedirectBlocksOffAllowlistHostOnSecondHop proves checkRedirect
+// re-validates the host on every hop, not just the first: a chain that
+// starts on an allowlisted host and then redirects again to a
+// non-allowlisted host must be blocked on that second hop.
+func TestCheckRedirectBlocksOffAllowlistHostOnSecondHop(t *testing.T) {
+	first := &http.Request{URL: &url.URL{Scheme: "https", Host: "www.clickthecity.com"}}
+	if err := checkRedirect(first, nil); err != nil {
+		t.Fatalf("checkRedirect for first (allowlisted) hop = %v, want nil", err)
+	}
+
+	second := &http.Request{URL: &url.URL{Scheme: "https", Host: "evil.example.com"}}
+	err := checkRedirect(second, []*http.Request{first})
+	if err == nil {
+		t.Fatal("checkRedirect for second (off-allowlist) hop = nil, want error")
+	}
+}
+
 func TestCheckRedirectStopsAfterMaxRedirects(t *testing.T) {
 	via := make([]*http.Request, maxRedirects)
 	req := &http.Request{URL: &url.URL{Scheme: "https", Host: "www.clickthecity.com"}}
