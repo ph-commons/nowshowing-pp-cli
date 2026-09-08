@@ -10,7 +10,7 @@ require (
 
 require modernc.org/sqlite v1.57.0
 
-require github.com/mark3labs/mcp-go v0.58.0
+require github.com/mark3labs/mcp-go v1.0.0
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
