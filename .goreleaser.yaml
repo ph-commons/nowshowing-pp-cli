@@ -1,5 +1,8 @@
 version: 2
 project_name: nowshowing-pp-cli
+release:
+  # release-please owns the release notes; only attach assets.
+  mode: keep-existing
 changelog:
   disable: true
 builds:
