@@ -8,7 +8,7 @@ require (
 	github.com/spf13/pflag v1.0.10
 )
 
-require modernc.org/sqlite v1.59.0
+require modernc.org/sqlite v1.60.1
 
 require github.com/mark3labs/mcp-go v1.1.1
 
@@ -24,7 +24,7 @@ require (
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	modernc.org/libc v1.75.7 // indirect
+	modernc.org/libc v1.77.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
 )
@@ -32,4 +32,4 @@ require (
 // Floor x/sys above the vulnerable v0.31.0. It is pulled only transitively
 // (modernc.org/sqlite, golang.org/x/net, ...), so MVS needs this explicit
 // floor; tidy drops it for CLIs that pull no x/sys at all.
-require golang.org/x/sys v0.47.0 // indirect
+require golang.org/x/sys v0.48.0 // indirect
