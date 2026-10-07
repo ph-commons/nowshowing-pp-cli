@@ -1,26 +1,84 @@
 name: Release
 
-# Builds prebuilt binaries for every target in CI and attaches them to the
-# GitHub release on tag push — so no fleet machine compiles modernc.org/sqlite.
+# Cuts a release automatically when a releasable commit reaches master, then
+# attaches prebuilt binaries in the same run.
+#
+# release-please opens/updates a release PR from Conventional Commits. The app
+# token (not the default GITHUB_TOKEN) is what lets that PR trigger pull_request
+# CI, so branch protection plus auto-merge land it without a human. Merging the
+# release PR makes release-please create the tag + GitHub Release and set
+# release_created=true, which unlocks the GoReleaser job below. Everything runs
+# in ONE workflow gated on that output, so no token-created tag needs to trigger
+# a SECOND workflow (events raised by GITHUB_TOKEN do not start workflows).
 on:
   push:
-    tags: ['v*']
+    branches: [master]
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  release:
+  release-please:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      prs_created: ${{ steps.release.outputs.prs_created }}
+      pr: ${{ steps.release.outputs.pr }}
+    steps:
+      - name: Mint app installation token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-issues: write
+
+      - name: Maintain release PR / cut release
+        id: release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      # Enable auto-merge once required checks pass. Branch protection is
+      # satisfied normally; this never uses --admin and never bypasses checks.
+      - name: Enable auto-merge on the release PR
+        if: steps.release.outputs.prs_created == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR: ${{ steps.release.outputs.pr }}
+        run: |
+          number="$(jq -r '.number' <<< "$PR")"
+          if [ -z "$number" ] || [ "$number" = "null" ]; then
+            echo "no release PR number available; skipping"
+            exit 0
+          fi
+          gh pr merge "$number" --auto --squash --repo "$GITHUB_REPOSITORY"
+
+  goreleaser:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          ref: ${{ needs.release-please.outputs.tag_name }}
 
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.26'
+          go-version: "1.26"
           cache: true
 
       - uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
@@ -29,3 +87,4 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_CURRENT_TAG: ${{ needs.release-please.outputs.tag_name }}
