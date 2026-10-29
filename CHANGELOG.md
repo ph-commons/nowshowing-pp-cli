@@ -1,4 +1,6 @@
 # Changelog
 
-This file is maintained by printing-press-library release automation. Do not hand-edit release sections in normal PRs.
+All notable changes to this project are documented in this file.
 
+Maintained by [release-please](https://github.com/googleapis/release-please)
+from Conventional Commits. Do not hand-edit release sections in normal PRs.
